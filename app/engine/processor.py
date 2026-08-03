@@ -10,6 +10,8 @@ from app.models import MessageRole
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_WAKEUP_TIMER_SECONDS = 60
+
 
 async def process_event(
     db: AsyncSession,
@@ -83,7 +85,19 @@ async def process_event(
                 execute_at=execute_at,
             )
             timers_set_count = 1
-            logger.info(f"[ACTION:SET_TIMER] Set wake-up timer for session {session_id} in {action.delay_seconds}s (execute_at: {execute_at.strftime('%H:%M:%S UTC')}, Task ID: {task.id})")
+            logger.info(f"[ACTION:SET_TIMER] LLM requested wake-up timer for session {session_id} in {action.delay_seconds}s (execute_at: {execute_at.strftime('%H:%M:%S UTC')}, Task ID: {task.id})")
+
+    # 7. Default wake-up timer fallback if no timer was explicitly set by LLM
+    if timers_set_count == 0:
+        await crud.cancel_pending_tasks_for_session(db, session_id)
+        execute_at = now + timedelta(seconds=DEFAULT_WAKEUP_TIMER_SECONDS)
+        task = await crud.create_scheduled_task(
+            db=db,
+            session_id=session_id,
+            execute_at=execute_at,
+        )
+        timers_set_count = 1
+        logger.info(f"[DEFAULT_TIMER] Scheduled default {DEFAULT_WAKEUP_TIMER_SECONDS}s wake-up timer for session {session_id} (execute_at: {execute_at.strftime('%H:%M:%S UTC')}, Task ID: {task.id})")
 
     logger.info(f"[ENGINE] Completed event cycle for session {session_id}: spoken={spoken_count}, timers_set={timers_set_count}")
 

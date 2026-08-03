@@ -22,10 +22,23 @@ SYSTEM_JSON_INSTRUCTION = (
 
 
 class LLMClient:
-    def __init__(self, api_key: str | None = None, model: str | None = None):
-        self.api_key = api_key or settings.OPENAI_API_KEY
+    def __init__(
+        self,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        model: str | None = None,
+    ):
+        self.api_key = api_key if api_key is not None else (settings.OPENAI_API_KEY or "ollama")
+        self.base_url = base_url if base_url is not None else (settings.OPENAI_BASE_URL or None)
         self.model = model or settings.OPENAI_MODEL
-        self.client = AsyncOpenAI(api_key=self.api_key) if self.api_key else None
+
+        client_kwargs = {}
+        if self.api_key:
+            client_kwargs["api_key"] = self.api_key
+        if self.base_url:
+            client_kwargs["base_url"] = self.base_url
+
+        self.client = AsyncOpenAI(**client_kwargs) if (self.api_key or self.base_url) else None
 
     async def generate_actions(
         self, messages: list[dict[str, str]]

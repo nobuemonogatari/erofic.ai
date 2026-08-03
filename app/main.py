@@ -1,6 +1,9 @@
 from contextlib import asynccontextmanager
 import logging
+from pathlib import Path
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router as api_router
 from app.core.config import settings
@@ -16,6 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 scheduler_worker = TaskSchedulerWorker(session_factory=async_session_factory)
+STATIC_DIR = Path(__file__).parent / "static"
 
 
 @asynccontextmanager
@@ -42,6 +46,16 @@ app = FastAPI(
 )
 
 app.include_router(api_router)
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.get("/")
+async def root_frontend():
+    index_file = STATIC_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return {"message": "Core AI Chat Engine API active. Docs at /docs"}
 
 
 @app.get("/health")

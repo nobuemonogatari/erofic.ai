@@ -36,18 +36,18 @@ This document outlines the step-by-step roadmap for building the **Core AI Chat 
 
 ## Phase 3: LLM Interface & Schema Engine
 
-- [ ] **Task 3.1: LLM Action Schemas**
+- [x] **Task 3.1: LLM Action Schemas**
   - Implement `app/engine/schema.py` defining Pydantic models for structured actions:
     - `SpeakAction` (`type="speak"`, `content`)
     - `ScheduleAction` (`type="schedule"`, `content`, `delay_seconds`)
     - `LLMActionResponse` (`actions`: list of actions)
 
-- [ ] **Task 3.2: Context Management & Time Injection**
+- [x] **Task 3.2: Context Management & Time Injection**
   - Implement `app/engine/context.py`:
     - Sliding window helper retaining the system prompt and latest $N$ messages fitting token/message limits.
     - System time injector injecting current ISO timestamp and time elapsed since last message (e.g. *"System: It is currently 2:00 PM. The user has not replied in 4 hours."*).
 
-- [ ] **Task 3.3: OpenAI Client Integration**
+- [x] **Task 3.3: OpenAI Client Integration**
   - Implement `app/engine/llm.py` wrapping the `openai` SDK.
   - Enforce JSON mode / structured output schema request.
   - Add error handling and fallback parsing for malformed JSON responses.
@@ -56,12 +56,12 @@ This document outlines the step-by-step roadmap for building the **Core AI Chat 
 
 ## Phase 4: Core Event Engine & Guardrails
 
-- [ ] **Task 4.1: Guardrails & Safety Rules**
+- [x] **Task 4.1: Guardrails & Safety Rules**
   - Implement `app/engine/guardrails.py`:
     - Recursion check: Count consecutive `assistant` messages since the last `user` message. Abort/raise if count $\ge 3$.
     - Idempotency validation helper for scheduled tasks.
 
-- [ ] **Task 4.2: Event Processor**
+- [x] **Task 4.2: Event Processor**
   - Implement `app/engine/processor.py` executing the trigger cycle:
     1. Fetch session and message history.
     2. Inject time-awareness into context.
@@ -74,7 +74,7 @@ This document outlines the step-by-step roadmap for building the **Core AI Chat 
 
 ## Phase 5: Scheduler & Background Execution Worker
 
-- [ ] **Task 5.1: Background Worker Engine**
+- [x] **Task 5.1: Background Worker Engine**
   - Implement `app/scheduler/worker.py` using `APScheduler` or Asyncio polling loop checking `ScheduledTask` every 1 second.
   - Enforce idempotency: Mark task status as `completed` atomically *before* invoking the event processor.
   - Trigger event processor for tasks where `status == 'pending'` and `execute_at <= now()`.
@@ -83,7 +83,7 @@ This document outlines the step-by-step roadmap for building the **Core AI Chat 
 
 ## Phase 6: FastAPI Application & API Endpoints
 
-- [ ] **Task 6.1: API Routers & Schemas**
+- [x] **Task 6.1: API Routers & Schemas**
   - Implement request/response Pydantic schemas in `app/api/schemas.py`:
     - `SessionCreateRequest`, `SessionResponse`
     - `MessageCreateRequest`, `MessageResponse`
@@ -92,7 +92,7 @@ This document outlines the step-by-step roadmap for building the **Core AI Chat 
     - `POST /sessions/{id}/message` -> Post user message & trigger event processor.
     - `GET /sessions/{id}/messages` -> Fetch full message history.
 
-- [ ] **Task 6.2: Main App Assembly & Lifecycle**
+- [x] **Task 6.2: Main App Assembly & Lifecycle**
   - Implement `app/main.py`:
     - FastAPI app instance with CORS/middleware.
     - Router registration.
@@ -102,7 +102,7 @@ This document outlines the step-by-step roadmap for building the **Core AI Chat 
 
 ## Phase 7: Testing & Verification
 
-- [ ] **Task 7.1: Unit & Integration Tests**
+- [x] **Task 7.1: Unit & Integration Tests**
   - `tests/test_db.py`: CRUD operations for Session, Message, and ScheduledTask.
   - `tests/test_context.py`: Sliding window truncation & time injection logic.
   - `tests/test_guardrails.py`: Recursion limit (max 3 assistant messages) enforcement.

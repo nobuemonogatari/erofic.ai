@@ -75,6 +75,7 @@ To achieve autonomy, the LLM returns structured JSON containing chosen actions (
 *   `GET /sessions` → Fetch all chat sessions.
 *   `POST /sessions/{id}/message` → Save user message immediately and dispatch event processor asynchronously in background (non-blocking).
 *   `GET /sessions/{id}/messages` → Fetch chat history (UI polls for new assistant messages).
+*   `GET /sessions/{id}/tasks` → Fetch scheduled task history & status for debug/system event tracking (`pending`, `completed`, `cancelled`).
 
 ## 7. Tech Stack
 *   **Language:** Python 3.11+

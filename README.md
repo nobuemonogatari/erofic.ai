@@ -159,6 +159,25 @@ Clients poll this endpoint to view newly created assistant messages and delayed 
 curl -X GET "http://127.0.0.1:8000/sessions/3f9c6d40-8a12-4c56-b789-0123456789ab/messages"
 ```
 
+### 5. Fetch Scheduled Tasks & System Events (`GET /sessions/{id}/tasks`)
+
+Debug endpoint returning scheduled task history and state transitions (`pending`, `completed`, `cancelled`):
+
+```bash
+curl -X GET "http://127.0.0.1:8000/sessions/3f9c6d40-8a12-4c56-b789-0123456789ab/tasks"
+```
+*Response:*
+```json
+[
+  {
+    "id": "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
+    "session_id": "3f9c6d40-8a12-4c56-b789-0123456789ab",
+    "execute_at": "2026-08-03T20:02:00Z",
+    "status": "pending"
+  }
+]
+```
+
 ---
 
 ## 🧪 Running Tests

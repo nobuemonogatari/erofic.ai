@@ -83,3 +83,10 @@ async def test_sessions_and_messages_endpoints(async_client: AsyncClient):
     assert messages[0]["content"] == "Hello bot!"
     assert messages[1]["role"] == "assistant"
     assert messages[1]["content"] == "Bot reply via API"
+
+    # 4. Get Tasks (Debug endpoint)
+    tasks_res = await async_client.get(f"/sessions/{session_id}/tasks")
+    assert tasks_res.status_code == 200
+    tasks = tasks_res.json()
+    assert len(tasks) >= 1
+    assert tasks[0]["status"] == "pending"

@@ -12,11 +12,15 @@ SYSTEM_JSON_INSTRUCTION = (
     "You must respond with valid JSON matching the following schema:\n"
     "{\n"
     '  "actions": [\n'
-    '    {"type": "speak", "content": "plain text response message here"},\n'
+    '    {"type": "speak", "content": "first short message"},\n'
+    '    {"type": "speak", "content": "second follow-up text"},\n'
     '    {"type": "set_timer", "delay_seconds": 30}\n'
     "  ]\n"
     "}\n"
-    "delay_seconds for set_timer must be an integer between 10 and 60. Return plain text in speak content without HTML/XML tags."
+    "Guidelines:\n"
+    "- You can include multiple sequential 'speak' actions to send multiple short, natural human-like text messages.\n"
+    "- 'delay_seconds' for set_timer must be an integer between 10 and 60.\n"
+    "- Return plain text in speak content without HTML/XML tags."
 )
 
 

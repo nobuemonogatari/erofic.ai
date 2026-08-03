@@ -53,15 +53,16 @@ async def process_event(
     spoken_count = 0
     timers_set_count = 0
 
-    for action in llm_response.actions:
+    for i, action in enumerate(llm_response.actions):
         action_type = action.type
         if action_type == "speak":
+            msg_time = now + timedelta(milliseconds=i * 50)
             await crud.create_message(
                 db=db,
                 session_id=session_id,
                 role=MessageRole.ASSISTANT,
                 content=action.content,
-                timestamp=now,
+                timestamp=msg_time,
             )
             spoken_count += 1
         elif action_type == "set_timer":

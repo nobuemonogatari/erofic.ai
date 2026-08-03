@@ -93,3 +93,30 @@ async def test_pending_timer_autocancellation(test_db: AsyncSession):
     refreshed_task = await crud.get_scheduled_task(test_db, pending_task.id)
     assert refreshed_task is not None
     assert refreshed_task.status == TaskStatus.CANCELLED
+
+
+@pytest.mark.asyncio
+async def test_multiple_sequential_speak_actions(test_db: AsyncSession):
+    session = await crud.create_session(test_db, system_prompt="Test Prompt")
+    await crud.create_message(test_db, session.id, MessageRole.USER, "Tell me a story in parts.")
+
+    mock_llm = LLMClient()
+    mock_llm.generate_actions = AsyncMock(
+        return_value=LLMActionResponse(
+            actions=[
+                SpeakAction(content="Part 1: Once upon a time..."),
+                SpeakAction(content="Part 2: There was a coder..."),
+                SpeakAction(content="Part 3: Who built great AI systems."),
+            ]
+        )
+    )
+
+    result = await process_event(test_db, session.id, llm_client=mock_llm)
+    assert result["status"] == "success"
+    assert result["spoken"] == 3
+
+    messages = await crud.get_messages_for_session(test_db, session.id)
+    assert len(messages) == 4  # 1 user + 3 assistant
+    assert messages[1].content == "Part 1: Once upon a time..."
+    assert messages[2].content == "Part 2: There was a coder..."
+    assert messages[3].content == "Part 3: Who built great AI systems."

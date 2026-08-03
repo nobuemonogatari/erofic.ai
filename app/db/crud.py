@@ -29,6 +29,15 @@ async def get_session(
     return result.scalar_one_or_none()
 
 
+async def get_all_sessions(
+    db: AsyncSession
+) -> Sequence[SessionModel]:
+    result = await db.execute(
+        select(SessionModel).order_by(SessionModel.created_at.desc())
+    )
+    return result.scalars().all()
+
+
 async def create_message(
     db: AsyncSession,
     session_id: str,

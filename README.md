@@ -125,6 +125,12 @@ curl -X POST "http://127.0.0.1:8000/sessions" \
 }
 ```
 
+### 2. Fetch All Sessions (`GET /sessions`)
+
+```bash
+curl -X GET "http://127.0.0.1:8000/sessions"
+```
+
 ### 2. Send a User Message (`POST /sessions/{id}/message`)
 
 ```bash

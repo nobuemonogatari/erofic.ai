@@ -72,11 +72,11 @@ cp .env.example .env
 ```
 
 Configuration parameters in `.env`:
-- `DATABASE_URL`: Database connection string (default: `sqlite+aiosqlite:///./sql_app.db`)
-- `OPENAI_API_KEY`: API key (`ollama` for local models, or your OpenAI API key)
-- `OPENAI_BASE_URL`: OpenAI-compatible endpoint URL (e.g., `http://localhost:11434/v1` for Ollama)
-- `OPENAI_MODEL`: LLM model identifier (e.g., `huihui_ai/llama3.2-abliterate:3b-instruct` or `gpt-4o`)
-- `LOG_LEVEL`: Logging verbosity (default: `INFO`)
+- `DATABASE_URL`: Database connection string (`sqlite+aiosqlite:///./sql_app.db`)
+- `OPENAI_API_KEY`: API authentication key (`ollama` or OpenAI key)
+- `OPENAI_BASE_URL`: OpenAI-compatible endpoint URL (`http://localhost:11434/v1`)
+- `OPENAI_MODEL`: LLM model identifier (`huihui_ai/llama3.2-abliterate:3b-instruct` or `gpt-4o`)
+- `LOG_LEVEL`: Logging verbosity (`INFO`)
 
 ---
 

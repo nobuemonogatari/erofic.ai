@@ -1,13 +1,25 @@
 # Core AI Chat Engine (erofic.ai)
 
-A headless, event-driven AI chat engine built with FastAPI, SQLite (SQLAlchemy async), and OpenAI's SDK. Designed to simulate human conversational behavior with asynchronous messaging, time awareness, delayed responses, and proactive "double-texting".
+A headless, event-driven AI chat engine built with **FastAPI**, **SQLite** (SQLAlchemy 2.0 Async), and **OpenAI's SDK**. Designed to simulate human conversational behavior with asynchronous messaging, time awareness, delayed responses, and proactive "double-texting".
 
 ---
 
 ## 📚 Project Documentation & References
 
 - **[REQUIREMENTS.md](REQUIREMENTS.md)**: Full project specifications, architecture, data models, LLM action schemas, context management rules, and safety guardrails.
-- **[ROADMAP.md](ROADMAP.md)**: Phased task breakdown and completion status for developers and CLI coding agents.
+- **[ROADMAP.md](ROADMAP.md)**: Phased task breakdown and completion status (All 7 phases completed!).
+
+---
+
+## ⚡ Core Features & Capabilities
+
+- **Event-Driven Architecture**: Operates on discrete triggers (user message API calls or scheduled timer elapses), executes bounded logic, and spins down.
+- **Proactive "Double-Texting"**: The LLM can return structured `schedule` actions to send proactive follow-up messages after a specified delay (`delay_seconds`).
+- **Time-Aware Context Engine**: Injects current system time and time elapsed since the last message into every LLM call (e.g. *"System: It is currently 2:00 PM. The user has not replied in 4 hours."*).
+- **Safety Guardrails**:
+  - **Recursion Limit**: Prevents infinite talking loops (max 3 consecutive assistant messages without user intervention).
+  - **Idempotency**: Atomic status updates mark scheduled tasks as `completed` before execution to prevent double-firing.
+  - **JSON Fallback**: Safe error handling for malformed LLM responses.
 
 ---
 
@@ -17,7 +29,7 @@ A headless, event-driven AI chat engine built with FastAPI, SQLite (SQLAlchemy a
 - **Framework**: FastAPI (REST API & background event orchestration)
 - **Database**: SQLite (via SQLAlchemy 2.0 Async + `aiosqlite`)
 - **LLM Integration**: OpenAI Python SDK (Structured JSON schemas)
-- **Scheduler**: APScheduler / Asyncio background worker
+- **Scheduler**: Async Background Worker (1-second polling loop)
 - **Testing**: `pytest` & `pytest-asyncio`
 
 ---
@@ -41,7 +53,7 @@ python3 -m venv .venv
 # Activate the virtual environment
 # On Linux/macOS:
 source .venv/bin/activate
-# On Windows (bash/cmd):
+# On Windows (cmd/powershell):
 # .venv\Scripts\activate
 ```
 
@@ -53,29 +65,84 @@ pip install -r requirements.txt
 
 ### 4. Configuration (.env)
 
-Copy the `.env.example` file to `.env` and set your configuration variables:
+Copy the `.env.example` file to `.env` and set your OpenAI API Key:
 
 ```bash
 cp .env.example .env
 ```
 
-Key environment settings (`app/core/config.py`):
+Configuration parameters in `.env`:
 - `DATABASE_URL`: Database connection string (default: `sqlite+aiosqlite:///./sql_app.db`)
-- `OPENAI_API_KEY`: Your OpenAI API Key (or OpenAI-compatible provider key)
+- `OPENAI_API_KEY`: Your OpenAI API key
 - `OPENAI_MODEL`: LLM model identifier (default: `gpt-4o`)
 - `LOG_LEVEL`: Logging verbosity (default: `INFO`)
 
 ---
 
-## 🧪 Running Tests
+## 🏃 Running the Application
 
-Run the test suite using `pytest`:
+Start the FastAPI development server using `uvicorn`:
 
 ```bash
-pytest
+uvicorn app.main:app --reload --port 8000
 ```
 
-To run tests with detailed output:
+Once running:
+- **Interactive OpenAPI / Swagger Documentation**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **Health Check**: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
+
+---
+
+## 📡 API Usage & Examples
+
+### 1. Create a Chat Session (`POST /sessions`)
+
+```bash
+curl -X POST "http://127.0.0.1:8000/sessions" \
+     -H "Content-Type: application/json" \
+     -d '{"system_prompt": "You are a friendly companion. Keep responses brief."}'
+```
+*Response:*
+```json
+{
+  "id": "3f9c6d40-8a12-4c56-b789-0123456789ab",
+  "system_prompt": "You are a friendly companion. Keep responses brief.",
+  "created_at": "2026-08-03T20:00:00Z",
+  "updated_at": "2026-08-03T20:00:00Z"
+}
+```
+
+### 2. Send a User Message (`POST /sessions/{id}/message`)
+
+```bash
+curl -X POST "http://127.0.0.1:8000/sessions/3f9c6d40-8a12-4c56-b789-0123456789ab/message" \
+     -H "Content-Type: application/json" \
+     -d '{"content": "Hey there! How are you?"}'
+```
+*Response:*
+```json
+{
+  "id": "e8d9c0a1-2b3c-4d5e-6f7a-8b9c0d1e2f3a",
+  "session_id": "3f9c6d40-8a12-4c56-b789-0123456789ab",
+  "role": "user",
+  "content": "Hey there! How are you?",
+  "timestamp": "2026-08-03T20:01:00Z"
+}
+```
+
+### 3. Fetch Message History (`GET /sessions/{id}/messages`)
+
+Clients poll this endpoint to view newly created assistant messages and delayed scheduled messages:
+
+```bash
+curl -X GET "http://127.0.0.1:8000/sessions/3f9c6d40-8a12-4c56-b789-0123456789ab/messages"
+```
+
+---
+
+## 🧪 Running Tests
+
+Run the full test suite using `pytest`:
 
 ```bash
 pytest -v
@@ -88,13 +155,13 @@ pytest -v
 ```text
 erofic.ai/
 ├── app/
-│   ├── api/          # FastAPI routers & endpoint schemas
+│   ├── api/          # FastAPI routers & API schemas (POST /sessions, POST /message, GET /messages)
 │   ├── core/         # Settings & app configurations (app/core/config.py)
-│   ├── db/           # Async database session, initialization, and CRUD helpers
+│   ├── db/           # Async database session, init, and CRUD helpers (app/db/crud.py)
 │   ├── engine/       # LLM client, prompt builder, context manager, & safety guardrails
 │   ├── models/       # SQLAlchemy ORM models (Session, Message, ScheduledTask)
-│   └── scheduler/    # Background polling worker & task execution engine
-├── tests/            # Test suite (test_db.py, etc.)
+│   └── scheduler/    # Background polling worker (app/scheduler/worker.py)
+├── tests/            # Test suite (test_db.py, test_context.py, test_engine.py, test_api.py, test_scheduler.py)
 ├── .env.example      # Example environment configuration
 ├── pytest.ini        # Pytest configuration
 ├── README.md         # Project documentation & quickstart guide

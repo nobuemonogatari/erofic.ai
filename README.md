@@ -131,7 +131,7 @@ curl -X POST "http://127.0.0.1:8000/sessions" \
 curl -X GET "http://127.0.0.1:8000/sessions"
 ```
 
-### 2. Send a User Message (`POST /sessions/{id}/message`)
+### 3. Send a User Message (`POST /sessions/{id}/message`)
 
 ```bash
 curl -X POST "http://127.0.0.1:8000/sessions/3f9c6d40-8a12-4c56-b789-0123456789ab/message" \
@@ -149,7 +149,7 @@ curl -X POST "http://127.0.0.1:8000/sessions/3f9c6d40-8a12-4c56-b789-0123456789a
 }
 ```
 
-### 3. Fetch Message History (`GET /sessions/{id}/messages`)
+### 4. Fetch Message History (`GET /sessions/{id}/messages`)
 
 Clients poll this endpoint to view newly created assistant messages and delayed scheduled messages:
 

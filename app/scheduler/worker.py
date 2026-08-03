@@ -28,26 +28,31 @@ class TaskSchedulerWorker:
 
         async with self.session_factory() as db:
             due_tasks = await crud.get_pending_tasks_due(db, now=now)
+            if due_tasks:
+                logger.info(f"[SCHEDULER] Found {len(due_tasks)} pending task(s) due at or before {now.strftime('%H:%M:%S UTC')}")
+
             for task in due_tasks:
                 # IDEMPOTENCY: Mark completed BEFORE executing trigger
+                logger.info(f"[SCHEDULER] Marking task {task.id} (Session {task.session_id}) as COMPLETED")
                 await crud.mark_task_status(db, task.id, TaskStatus.COMPLETED)
                 try:
+                    logger.info(f"[SCHEDULER] Triggering process_event for task {task.id} (Session {task.session_id})...")
                     await process_event(db, task.session_id, trigger_type="scheduled_action")
                     processed_count += 1
                 except Exception as e:
-                    logger.error(f"Error processing scheduled task {task.id}: {e}")
+                    logger.error(f"[SCHEDULER] Error executing scheduled task {task.id}: {e}")
 
         return processed_count
 
     async def _loop(self) -> None:
-        logger.info("Background task scheduler worker started.")
+        logger.info("Background task scheduler worker loop active (polling every 1.0s).")
         while self._running:
             try:
                 await self.run_once()
             except Exception as e:
-                logger.error(f"Error in scheduler worker loop: {e}")
+                logger.error(f"[SCHEDULER] Exception in worker loop: {e}")
             await asyncio.sleep(self.poll_interval)
-        logger.info("Background task scheduler worker stopped.")
+        logger.info("Background task scheduler worker loop terminated.")
 
     def start(self) -> None:
         if not self._running:

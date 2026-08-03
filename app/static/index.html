@@ -457,18 +457,36 @@
           container.innerHTML = '';
         }
 
-        let newAdded = false;
+        const timeline = [];
 
-        // Render messages
         messages.forEach(m => {
-          if (!knownMessageIds.has(m.id)) {
-            knownMessageIds.add(m.id);
-            newAdded = true;
+          timeline.push({
+            kind: 'message',
+            id: m.id,
+            timestamp: new Date(m.timestamp),
+            data: m
+          });
+        });
 
+        tasks.forEach(t => {
+          timeline.push({
+            kind: 'task',
+            id: `task-${t.id}-${t.status}`,
+            timestamp: new Date(t.execute_at),
+            data: t
+          });
+        });
+
+        // Sort strictly by timestamp ascending
+        timeline.sort((a, b) => a.timestamp - b.timestamp);
+
+        container.innerHTML = '';
+        timeline.forEach(item => {
+          if (item.kind === 'message') {
+            const m = item.data;
             const bubble = document.createElement('div');
             bubble.className = `message-bubble ${m.role}`;
-            
-            const formattedTime = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const formattedTime = item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
             bubble.innerHTML = `
               <div class="msg-header">
@@ -478,19 +496,11 @@
               <div class="msg-content">${escapeHtml(m.content)}</div>
             `;
             container.appendChild(bubble);
-          }
-        });
-
-        // Render system timer events
-        tasks.forEach(t => {
-          const prevStatus = knownTaskStates.get(t.id);
-          if (prevStatus !== t.status) {
-            knownTaskStates.set(t.id, t.status);
-            newAdded = true;
-
+          } else if (item.kind === 'task') {
+            const t = item.data;
             const sysBubble = document.createElement('div');
             sysBubble.className = `message-bubble system ${t.status}`;
-            const execTime = new Date(t.execute_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const execTime = item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
             let eventText = '';
             if (t.status === 'pending') {
@@ -506,9 +516,7 @@
           }
         });
 
-        if (newAdded) {
-          container.scrollTop = container.scrollHeight;
-        }
+        container.scrollTop = container.scrollHeight;
       } catch (err) {
         console.error('Error fetching stream:', err);
       }

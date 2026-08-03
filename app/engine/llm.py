@@ -8,7 +8,6 @@ from app.engine.schema import LLMActionResponse
 
 logger = logging.getLogger(__name__)
 
-
 SYSTEM_JSON_INSTRUCTION = (
     "You must respond with valid JSON matching the following schema:\n"
     "{\n"
@@ -28,25 +27,19 @@ class LLMClient:
         base_url: str | None = None,
         model: str | None = None,
     ):
-        self.api_key = api_key if api_key is not None else (settings.OPENAI_API_KEY or "ollama")
+        self.api_key = api_key if api_key is not None else (settings.OPENAI_API_KEY or "no-key")
         self.base_url = base_url if base_url is not None else (settings.OPENAI_BASE_URL or None)
         self.model = model or settings.OPENAI_MODEL
 
-        client_kwargs = {}
-        if self.api_key:
-            client_kwargs["api_key"] = self.api_key
+        kwargs: dict[str, str] = {"api_key": self.api_key}
         if self.base_url:
-            client_kwargs["base_url"] = self.base_url
+            kwargs["base_url"] = self.base_url
 
-        self.client = AsyncOpenAI(**client_kwargs) if (self.api_key or self.base_url) else None
+        self.client = AsyncOpenAI(**kwargs)
 
     async def generate_actions(
         self, messages: list[dict[str, str]]
     ) -> LLMActionResponse:
-        if not self.client:
-            logger.warning("OpenAI API key not configured. Returning empty actions.")
-            return LLMActionResponse(actions=[])
-
         payload_messages = [
             {"role": "system", "content": SYSTEM_JSON_INSTRUCTION}
         ] + messages
@@ -54,7 +47,7 @@ class LLMClient:
         try:
             response = await self.client.chat.completions.create(
                 model=self.model,
-                messages=payload_messages, # type: ignore
+                messages=payload_messages,  # type: ignore
                 response_format={"type": "json_object"},
                 temperature=0.7,
             )

@@ -64,7 +64,10 @@ class LLMClient:
 
             parsed_json = json.loads(raw_content)
             action_response = LLMActionResponse.model_validate(parsed_json)
-            logger.info(f"[LLM] Successfully parsed {len(action_response.actions)} action(s) from LLM response")
+            speak_count = sum(1 for a in action_response.actions if a.type == "speak")
+            timer_action = next((a for a in action_response.actions if a.type == "set_timer"), None)
+            timer_str = f"{timer_action.delay_seconds}s" if timer_action else "None"
+            logger.info(f"[LLM] Parsed {len(action_response.actions)} action(s) from LLM (speak_msg_count={speak_count}, requested_timer={timer_str})")
             return action_response
 
         except ValidationError as e:

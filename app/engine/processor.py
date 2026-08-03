@@ -55,7 +55,10 @@ async def process_event(
     client = llm_client or LLMClient()
     logger.info(f"[ENGINE] Invoking LLM (model: {client.model})...")
     llm_response = await client.generate_actions(llm_payload)
-    logger.info(f"[ENGINE] LLM returned {len(llm_response.actions)} action(s)")
+    speak_actions = [a for a in llm_response.actions if a.type == "speak"]
+    timer_actions = [a for a in llm_response.actions if a.type == "set_timer"]
+    timer_summary = f"{timer_actions[0].delay_seconds}s" if timer_actions else "None"
+    logger.info(f"[ENGINE] LLM returned {len(llm_response.actions)} action(s): speak_msg_count={len(speak_actions)}, requested_timer={timer_summary}")
 
     # 6. Execute LLM actions
     spoken_count = 0

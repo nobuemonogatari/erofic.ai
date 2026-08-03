@@ -80,6 +80,18 @@ Configuration parameters in `.env`:
 
 ---
 
+## 🗄️ Resetting the Database
+
+To wipe all sessions, messages, and scheduled tasks to start fresh, delete the SQLite database file:
+
+```bash
+rm -f sql_app.db
+```
+
+The next time you start the app server (`uvicorn app.main:app`), it will automatically create a clean, empty database.
+
+---
+
 ## 🏃 Running the Application
 
 Start the FastAPI development server using `uvicorn`:

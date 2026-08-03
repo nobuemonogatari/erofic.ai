@@ -109,8 +109,8 @@ erofic.ai/
 
 - [x] **Phase 1: Project Setup & Environment Configuration**
 - [x] **Phase 2: Data Layer & Database Models** (Session, Message, ScheduledTask & CRUD)
-- [ ] **Phase 3: LLM Interface & Schema Engine** (In Progress)
-- [ ] **Phase 4: Core Event Engine & Guardrails**
-- [ ] **Phase 5: Scheduler & Background Execution Worker**
-- [ ] **Phase 6: FastAPI Web API & Endpoints**
-- [ ] **Phase 7: End-to-End Integration Testing**
+- [x] **Phase 3: LLM Interface & Schema Engine** (Structured actions, context manager, time injection & OpenAI SDK)
+- [x] **Phase 4: Core Event Engine & Guardrails** (Event cycle processor & 3-message recursion guardrail)
+- [x] **Phase 5: Scheduler & Background Execution Worker** (1-second polling worker with idempotency)
+- [x] **Phase 6: FastAPI Web API & Endpoints** (`POST /sessions`, `POST /sessions/{id}/message`, `GET /sessions/{id}/messages`)
+- [x] **Phase 7: End-to-End Integration Testing** (12 unit & integration tests passing)

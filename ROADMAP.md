@@ -6,11 +6,11 @@ This document outlines the step-by-step roadmap for building the **Core AI Chat 
 
 ## Phase 1: Project Setup & Environment Setup
 
-- [ ] **Task 1.1: Project Directory Structure**
+- [x] **Task 1.1: Project Directory Structure**
   - Create directory layout: `app/` (core source code), `app/api/`, `app/core/`, `app/db/`, `app/engine/`, `app/models/`, `app/scheduler/`, `tests/`.
   - Add `__init__.py` files across all Python packages.
 
-- [ ] **Task 1.2: Dependency & Configuration Management**
+- [x] **Task 1.2: Dependency & Configuration Management**
   - Create `requirements.txt` or `pyproject.toml` with dependencies (`fastapi`, `uvicorn`, `sqlalchemy`, `pydantic`, `pydantic-settings`, `openai`, `apscheduler`, `pytest`, `httpx`).
   - Create `app/core/config.py` using `pydantic-settings` to manage environment variables (e.g., `DATABASE_URL`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `LOG_LEVEL`).
   - Create `.env.example` file.
@@ -19,16 +19,16 @@ This document outlines the step-by-step roadmap for building the **Core AI Chat 
 
 ## Phase 2: Data Layer & Database Models
 
-- [ ] **Task 2.1: Database Engine & Session Setup**
+- [x] **Task 2.1: Database Engine & Session Setup**
   - Implement `app/db/session.py` setting up SQLite database engine and session factory (`sqlalchemy` async or sync session).
 
-- [ ] **Task 2.2: Database Models**
+- [x] **Task 2.2: Database Models**
   - Implement `app/models/session.py`: `Session` model (`id` UUID primary key, `system_prompt` text, `created_at`, `updated_at`).
   - Implement `app/models/message.py`: `Message` model (`id` UUID, `session_id` FK, `role` enum (`user`, `assistant`, `system`), `content` text, `timestamp`).
   - Implement `app/models/task.py`: `ScheduledTask` model (`id` UUID, `session_id` FK, `execute_at` timestamp, `status` enum (`pending`, `completed`, `cancelled`)).
   - Implement `app/db/base.py` importing all models for metadata creation.
 
-- [ ] **Task 2.3: Database Initialization & CRUD Utilities**
+- [x] **Task 2.3: Database Initialization & CRUD Utilities**
   - Implement `app/db/init_db.py` to create tables on startup.
   - Implement `app/db/crud.py` with helper functions for creating/fetching sessions, creating/fetching messages, creating/updating/fetching pending scheduled tasks.
 

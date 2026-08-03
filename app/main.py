@@ -8,7 +8,11 @@ from app.db.init_db import init_db
 from app.db.session import async_session_factory
 from app.scheduler.worker import TaskSchedulerWorker
 
-logging.basicConfig(level=settings.LOG_LEVEL)
+logging.basicConfig(
+    level=settings.LOG_LEVEL.upper(),
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 logger = logging.getLogger(__name__)
 
 scheduler_worker = TaskSchedulerWorker(session_factory=async_session_factory)
@@ -17,6 +21,8 @@ scheduler_worker = TaskSchedulerWorker(session_factory=async_session_factory)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    logger.info("Starting Core AI Chat Engine application...")
+    logger.info(f"Loaded config - Database: {settings.DATABASE_URL}, Model: {settings.OPENAI_MODEL}, BaseURL: {settings.OPENAI_BASE_URL or 'default (OpenAI)'}")
     logger.info("Initializing database tables...")
     await init_db()
     logger.info("Starting task scheduler background worker...")
@@ -25,6 +31,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Stopping task scheduler background worker...")
     await scheduler_worker.stop()
+    logger.info("Application shutdown complete.")
 
 
 app = FastAPI(

@@ -17,25 +17,28 @@ async def process_event(
     trigger_type: str = "user_input",
     llm_client: LLMClient | None = None,
 ) -> dict[str, str | int]:
+    logger.info(f"[ENGINE] Starting event cycle for session {session_id} (trigger: {trigger_type})")
+
     # 1. Fetch Session and Message history from SQLite
     session_obj = await crud.get_session(db, session_id)
     if not session_obj:
-        logger.error(f"Session {session_id} not found.")
+        logger.error(f"[ENGINE] Session {session_id} not found in database. Aborting event.")
         return {"status": "error", "reason": "Session not found"}
 
     messages = await crud.get_messages_for_session(db, session_id)
+    logger.info(f"[ENGINE] Loaded history for session {session_id}: {len(messages)} message(s)")
 
     # 2. Check recursion limit guardrail
     if not check_recursion_limit(messages):
         logger.warning(
-            f"Recursion limit reached for session {session_id}. Aborting autonomous actions."
+            f"[GUARDRAIL] Recursion limit reached for session {session_id} (>= 3 consecutive assistant messages). Aborting."
         )
         return {"status": "aborted", "reason": "Recursion limit reached"}
 
     # 3. Auto-cancel any existing pending timers for this session
     cancelled_timers = await crud.cancel_pending_tasks_for_session(db, session_id)
     if cancelled_timers > 0:
-        logger.info(f"Cancelled {cancelled_timers} pending timer(s) for session {session_id}.")
+        logger.info(f"[ENGINE] Auto-cancelled {cancelled_timers} pending timer(s) for session {session_id}.")
 
     # 4. Build context payload with system time awareness
     now = datetime.now(timezone.utc)
@@ -44,10 +47,13 @@ async def process_event(
         messages=messages,
         current_time=now,
     )
+    logger.debug(f"[ENGINE] Prepared LLM payload with {len(llm_payload)} items (including time awareness)")
 
     # 5. Call LLM Client
     client = llm_client or LLMClient()
+    logger.info(f"[ENGINE] Invoking LLM (model: {client.model})...")
     llm_response = await client.generate_actions(llm_payload)
+    logger.info(f"[ENGINE] LLM returned {len(llm_response.actions)} action(s)")
 
     # 6. Execute LLM actions
     spoken_count = 0
@@ -65,16 +71,21 @@ async def process_event(
                 timestamp=msg_time,
             )
             spoken_count += 1
+            logger.info(f"[ACTION:SPEAK] Saved assistant message to session {session_id}: '{action.content[:60]}...'")
+
         elif action_type == "set_timer":
             # Strict Invariant: At most 1 pending timer per session
             await crud.cancel_pending_tasks_for_session(db, session_id)
             execute_at = now + timedelta(seconds=action.delay_seconds)
-            await crud.create_scheduled_task(
+            task = await crud.create_scheduled_task(
                 db=db,
                 session_id=session_id,
                 execute_at=execute_at,
             )
             timers_set_count = 1
+            logger.info(f"[ACTION:SET_TIMER] Set wake-up timer for session {session_id} in {action.delay_seconds}s (execute_at: {execute_at.strftime('%H:%M:%S UTC')}, Task ID: {task.id})")
+
+    logger.info(f"[ENGINE] Completed event cycle for session {session_id}: spoken={spoken_count}, timers_set={timers_set_count}")
 
     return {
         "status": "success",

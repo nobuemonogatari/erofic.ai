@@ -39,7 +39,7 @@ The engine operates on discrete events. It wakes up, executes bounded logic, and
 *   `status` (Enum: `pending`, `completed`, `cancelled`)
 
 ## 4. LLM Interface & Action Schema
-To achieve autonomy, the LLM returns structured JSON containing chosen actions.
+To achieve autonomy, the LLM returns structured JSON containing chosen actions (`speak` and `set_timer`).
 
 **Required LLM Output Schema:**
 ```json
@@ -48,10 +48,15 @@ To achieve autonomy, the LLM returns structured JSON containing chosen actions.
     {
       "type": "speak",
       "content": "I'll look into that for you right now."
+    },
+    {
+      "type": "set_timer",
+      "delay_seconds": 30
     }
   ]
 }
 ```
+*Note: `set_timer` schedules an engine wake-up event. `delay_seconds` must be between 10 and 60 seconds.*
 
 ## 5. Context Management (V1)
 *   **Method:** Simple Sliding Window.
@@ -74,6 +79,7 @@ The UI/Client will poll or rely on simple HTTP requests.
 *   **Background Tasks:** Async background worker.
 
 ## 8. Guardrails & Safety
+*   **Timer Auto-Cancellation:** Any pending timers for a session are automatically marked `cancelled` whenever a new event occurs (e.g. user sends a message or a new turn begins) to prevent stale wake-up calls.
 *   **Idempotency:** Tasks must be marked `completed` before execution to prevent double-firing.
 *   **Recursion Limit:** The assistant cannot send more than 3 consecutive messages without user intervention to prevent infinite loops.
 *   **Fallback:** If the LLM outputs malformed JSON, the system catches the error, aborts the event, and waits for the next user input.

@@ -50,6 +50,13 @@ async def test_sessions_and_messages_endpoints(async_client: AsyncClient):
     session_id = session_data["id"]
     assert session_data["system_prompt"] == "API Test Prompt"
 
+    # List Sessions
+    list_res = await async_client.get("/sessions")
+    assert list_res.status_code == 200
+    sessions_list = list_res.json()
+    assert len(sessions_list) >= 1
+    assert any(s["id"] == session_id for s in sessions_list)
+
     # 2. Post User Message (mock LLM response)
     with patch(
         "app.engine.processor.LLMClient.generate_actions",

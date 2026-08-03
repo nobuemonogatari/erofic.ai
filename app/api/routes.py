@@ -24,6 +24,14 @@ async def create_session_endpoint(
     return session_obj
 
 
+@router.get("/sessions", response_model=list[SessionResponse])
+async def list_sessions_endpoint(
+    db: AsyncSession = Depends(get_async_session),
+):
+    sessions = await crud.get_all_sessions(db)
+    return sessions
+
+
 @router.post("/sessions/{session_id}/message", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
 async def send_message_endpoint(
     session_id: str,

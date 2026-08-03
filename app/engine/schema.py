@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Annotated, Literal, Union
 from pydantic import BaseModel, Field
 
 
@@ -7,7 +7,17 @@ class SpeakAction(BaseModel):
     content: str = Field(..., description="Message content to respond immediately.")
 
 
-ActionItem = SpeakAction
+class SetTimerAction(BaseModel):
+    type: Literal["set_timer"] = "set_timer"
+    delay_seconds: int = Field(
+        ...,
+        description="Delay in seconds before waking up the engine.",
+        ge=10,
+        le=60,
+    )
+
+
+ActionItem = Annotated[Union[SpeakAction, SetTimerAction], Field(discriminator="type")]
 
 
 class LLMActionResponse(BaseModel):

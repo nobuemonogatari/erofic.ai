@@ -115,3 +115,22 @@ async def mark_task_status(
         await db.commit()
         await db.refresh(task)
     return task
+
+
+async def cancel_pending_tasks_for_session(
+    db: AsyncSession, session_id: str
+) -> int:
+    result = await db.execute(
+        select(ScheduledTaskModel).where(
+            ScheduledTaskModel.session_id == session_id,
+            ScheduledTaskModel.status == TaskStatus.PENDING,
+        )
+    )
+    pending_tasks = result.scalars().all()
+    count = 0
+    for task in pending_tasks:
+        task.status = TaskStatus.CANCELLED
+        count += 1
+    if count > 0:
+        await db.commit()
+    return count

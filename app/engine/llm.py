@@ -12,10 +12,11 @@ SYSTEM_JSON_INSTRUCTION = (
     "You must respond with valid JSON matching the following schema:\n"
     "{\n"
     '  "actions": [\n'
-    '    {"type": "speak", "content": "plain text response message here"}\n'
+    '    {"type": "speak", "content": "plain text response message here"},\n'
+    '    {"type": "set_timer", "delay_seconds": 30}\n'
     "  ]\n"
     "}\n"
-    "Return plain natural language text in the content field. Do NOT wrap content in HTML/XML tags."
+    "delay_seconds for set_timer must be an integer between 10 and 60. Return plain text in speak content without HTML/XML tags."
 )
 
 

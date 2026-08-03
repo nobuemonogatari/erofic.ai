@@ -73,8 +73,8 @@ To achieve autonomy, the LLM returns structured JSON containing chosen actions (
 ## 6. API Design (FastAPI)
 *   `POST /sessions` → Create a new chat session.
 *   `GET /sessions` → Fetch all chat sessions.
-*   `POST /sessions/{id}/message` → Send a user message (Trigger Event).
-*   `GET /sessions/{id}/messages` → Fetch chat history.
+*   `POST /sessions/{id}/message` → Save user message immediately and dispatch event processor asynchronously in background (non-blocking).
+*   `GET /sessions/{id}/messages` → Fetch chat history (UI polls for new assistant messages).
 
 ## 7. Tech Stack
 *   **Language:** Python 3.11+

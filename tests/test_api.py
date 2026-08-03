@@ -24,9 +24,10 @@ async def async_client():
 
     app.dependency_overrides[get_async_session] = override_get_db
 
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client
+    with patch("app.api.routes.async_session_factory", session_factory):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            yield client
 
     app.dependency_overrides.clear()
     await engine.dispose()

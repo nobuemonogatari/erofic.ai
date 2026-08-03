@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.schemas import (
@@ -9,13 +9,22 @@ from app.api.schemas import (
     SessionResponse,
 )
 from app.db import crud
-from app.db.session import get_async_session
+from app.db.session import async_session_factory, get_async_session
 from app.engine.processor import process_event
 from app.models import MessageRole
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+async def run_async_event_processor(session_id: str):
+    async with async_session_factory() as db:
+        try:
+            logger.info(f"[BACKGROUND_TASK] Executing event processor for session {session_id}...")
+            await process_event(db=db, session_id=session_id, trigger_type="user_input")
+        except Exception as e:
+            logger.error(f"[BACKGROUND_TASK] Error executing event processor for session {session_id}: {e}")
 
 
 @router.post("/sessions", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
@@ -41,6 +50,7 @@ async def list_sessions_endpoint(
 async def send_message_endpoint(
     session_id: str,
     req: MessageCreateRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_async_session),
 ):
     session_obj = await crud.get_session(db, session_id)
@@ -52,7 +62,7 @@ async def send_message_endpoint(
 
     logger.info(f"[API] Received message for session {session_id}: '{req.content[:60]}...'")
 
-    # 1. Save user message to database
+    # 1. Save user message to database immediately
     user_msg = await crud.create_message(
         db=db,
         session_id=session_id,
@@ -60,10 +70,11 @@ async def send_message_endpoint(
         content=req.content,
     )
 
-    # 2. Trigger Event Processor (Executes LLM logic & handles actions)
-    logger.info(f"[API] Triggering event processor cycle for session {session_id}")
-    await process_event(db=db, session_id=session_id, trigger_type="user_input")
+    # 2. Dispatch event processor asynchronously in non-blocking background task
+    logger.info(f"[API] Dispatched non-blocking background event processor task for session {session_id}")
+    background_tasks.add_task(run_async_event_processor, session_id)
 
+    # 3. Immediately return response without waiting for LLM completion
     return user_msg
 
 

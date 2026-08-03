@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,7 +6,7 @@ from app.db import crud
 from app.engine.context import build_llm_messages
 from app.engine.guardrails import check_recursion_limit
 from app.engine.llm import LLMClient
-from app.models import MessageRole, TaskStatus
+from app.models import MessageRole
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,6 @@ async def process_event(
 
     # 5. Execute LLM actions
     spoken_count = 0
-    scheduled_count = 0
 
     for action in llm_response.actions:
         action_type = action.type
@@ -60,17 +59,7 @@ async def process_event(
             )
             spoken_count += 1
 
-        elif action_type == "schedule":
-            execute_at = now + timedelta(seconds=action.delay_seconds)
-            await crud.create_scheduled_task(
-                db=db,
-                session_id=session_id,
-                execute_at=execute_at,
-            )
-            scheduled_count += 1
-
     return {
         "status": "success",
         "spoken": spoken_count,
-        "scheduled": scheduled_count,
     }

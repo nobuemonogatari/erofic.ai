@@ -39,7 +39,7 @@ async def test_scheduler_worker_idempotency_and_execution(scheduler_env):
         "app.engine.processor.LLMClient.generate_actions",
         new_callable=AsyncMock,
         return_value=LLMActionResponse(
-            actions=[SpeakAction(content="Scheduled double-texting reply")]
+            actions=[SpeakAction(content="Scheduled event trigger reply")]
         ),
     ):
         count = await worker.run_once()
@@ -53,4 +53,4 @@ async def test_scheduler_worker_idempotency_and_execution(scheduler_env):
 
         messages = await crud.get_messages_for_session(db, session.id)
         assert len(messages) == 1
-        assert messages[0].content == "Scheduled double-texting reply"
+        assert messages[0].content == "Scheduled event trigger reply"

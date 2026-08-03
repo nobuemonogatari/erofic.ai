@@ -7,7 +7,7 @@ from app.db.base import Base
 from app.db import crud
 from app.engine.llm import LLMClient
 from app.engine.processor import process_event
-from app.engine.schema import LLMActionResponse, SpeakAction, ScheduleAction
+from app.engine.schema import LLMActionResponse, SpeakAction
 from app.models import MessageRole
 
 
@@ -29,14 +29,12 @@ async def test_llm_schema_validation():
     valid_json = {
         "actions": [
             {"type": "speak", "content": "Instant reply"},
-            {"type": "schedule", "content": "Delayed reply", "delay_seconds": 60},
         ]
     }
     resp = LLMActionResponse.model_validate(valid_json)
-    assert len(resp.actions) == 2
+    assert len(resp.actions) == 1
     assert isinstance(resp.actions[0], SpeakAction)
-    assert isinstance(resp.actions[1], ScheduleAction)
-    assert resp.actions[1].delay_seconds == 60
+    assert resp.actions[0].content == "Instant reply"
 
 
 @pytest.mark.asyncio
@@ -49,7 +47,6 @@ async def test_event_processor_execution(test_db: AsyncSession):
         return_value=LLMActionResponse(
             actions=[
                 SpeakAction(content="Processing request"),
-                ScheduleAction(content="Follow-up info", delay_seconds=120),
             ]
         )
     )
@@ -57,11 +54,7 @@ async def test_event_processor_execution(test_db: AsyncSession):
     result = await process_event(test_db, session.id, llm_client=mock_llm)
     assert result["status"] == "success"
     assert result["spoken"] == 1
-    assert result["scheduled"] == 1
 
     messages = await crud.get_messages_for_session(test_db, session.id)
     assert len(messages) == 2
     assert messages[1].content == "Processing request"
-
-    due_tasks = await crud.get_pending_tasks_due(test_db)
-    assert len(due_tasks) == 0  # Delayed 120s, not due yet

@@ -134,3 +134,14 @@ async def cancel_pending_tasks_for_session(
     if count > 0:
         await db.commit()
     return count
+
+
+async def get_tasks_for_session(
+    db: AsyncSession, session_id: str
+) -> Sequence[ScheduledTaskModel]:
+    result = await db.execute(
+        select(ScheduledTaskModel)
+        .where(ScheduledTaskModel.session_id == session_id)
+        .order_by(ScheduledTaskModel.execute_at.asc())
+    )
+    return result.scalars().all()

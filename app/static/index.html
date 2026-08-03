@@ -258,6 +258,28 @@
       border: 1px solid var(--border-color);
     }
 
+    .message-bubble.system {
+      align-self: center;
+      max-width: 85%;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px dashed rgba(245, 158, 11, 0.4);
+      color: #fcd34d;
+      font-size: 0.8rem;
+      padding: 0.5rem 0.85rem;
+      border-radius: 0.6rem;
+      text-align: center;
+    }
+
+    .message-bubble.system.completed {
+      border-color: rgba(52, 211, 153, 0.4);
+      color: #6ee7b7;
+    }
+
+    .message-bubble.system.cancelled {
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+
     .msg-header {
       display: flex;
       justify-content: space-between;
@@ -352,6 +374,7 @@
   <script>
     let activeSessionId = null;
     let knownMessageIds = new Set();
+    let knownTaskStates = new Map(); // taskId -> status
 
     async function fetchSessions() {
       try {
@@ -396,25 +419,32 @@
     function selectSession(sessionId) {
       activeSessionId = sessionId;
       knownMessageIds.clear();
+      knownTaskStates.clear();
       document.getElementById('activeSessionId').innerText = sessionId;
       document.getElementById('userInput').disabled = false;
       document.getElementById('sendBtn').disabled = false;
       document.getElementById('messagesContainer').innerHTML = '';
       fetchSessions();
-      fetchMessages();
+      fetchStream();
     }
 
-    async function fetchMessages() {
+    async function fetchStream() {
       if (!activeSessionId) return;
 
       try {
-        const res = await fetch(`/sessions/${activeSessionId}/messages`);
-        if (!res.ok) return;
+        // Fetch messages and task events in parallel
+        const [msgRes, taskRes] = await Promise.all([
+          fetch(`/sessions/${activeSessionId}/messages`),
+          fetch(`/sessions/${activeSessionId}/tasks`)
+        ]);
 
-        const messages = await res.json();
+        if (!msgRes.ok) return;
+
+        const messages = await msgRes.json();
+        const tasks = taskRes.ok ? await taskRes.json() : [];
         const container = document.getElementById('messagesContainer');
 
-        if (messages.length === 0 && knownMessageIds.size === 0) {
+        if (messages.length === 0 && tasks.length === 0 && knownMessageIds.size === 0 && knownTaskStates.size === 0) {
           container.innerHTML = `
             <div class="empty-state">
               <p>No messages yet. Send a message to trigger the engine.</p>
@@ -423,11 +453,13 @@
           return;
         }
 
-        if (knownMessageIds.size === 0) {
+        if (knownMessageIds.size === 0 && knownTaskStates.size === 0) {
           container.innerHTML = '';
         }
 
         let newAdded = false;
+
+        // Render messages
         messages.forEach(m => {
           if (!knownMessageIds.has(m.id)) {
             knownMessageIds.add(m.id);
@@ -449,11 +481,36 @@
           }
         });
 
+        // Render system timer events
+        tasks.forEach(t => {
+          const prevStatus = knownTaskStates.get(t.id);
+          if (prevStatus !== t.status) {
+            knownTaskStates.set(t.id, t.status);
+            newAdded = true;
+
+            const sysBubble = document.createElement('div');
+            sysBubble.className = `message-bubble system ${t.status}`;
+            const execTime = new Date(t.execute_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            let eventText = '';
+            if (t.status === 'pending') {
+              eventText = `⏱️ [System Event] Engine wake-up timer set (execute_at: ${execTime}, Status: PENDING)`;
+            } else if (t.status === 'completed') {
+              eventText = `⏰ [System Event] Wake-up timer executed at ${execTime} (Status: COMPLETED)`;
+            } else if (t.status === 'cancelled') {
+              eventText = `🚫 [System Event] Pending timer cancelled due to new activity (Status: CANCELLED)`;
+            }
+
+            sysBubble.innerText = eventText;
+            container.appendChild(sysBubble);
+          }
+        });
+
         if (newAdded) {
           container.scrollTop = container.scrollHeight;
         }
       } catch (err) {
-        console.error('Error fetching messages:', err);
+        console.error('Error fetching stream:', err);
       }
     }
 
@@ -471,7 +528,7 @@
           body: JSON.stringify({ content })
         });
         // Immediately trigger polling to show user message
-        fetchMessages();
+        fetchStream();
       } catch (err) {
         console.error('Error sending message:', err);
       }
@@ -490,9 +547,9 @@
     // Initial load
     fetchSessions();
 
-    // Auto-poll messages every 2 seconds
+    // Auto-poll messages and system task events every 2 seconds
     setInterval(() => {
-      fetchMessages();
+      fetchStream();
     }, 2000);
   </script>
 </body>

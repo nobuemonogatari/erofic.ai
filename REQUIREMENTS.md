@@ -84,6 +84,7 @@ To achieve autonomy, the LLM returns structured JSON containing chosen actions (
 *   **Background Tasks:** Async background worker.
 
 ## 8. Guardrails & Safety
+*   **Default 60s Wake-Up Fallback**: If the LLM completes a turn without calling `set_timer`, the engine automatically schedules a default 60-second wake-up timer (`DEFAULT_WAKEUP_TIMER_SECONDS = 60`).
 *   **Single Pending Timer Invariant**: At any time, at most 1 pending timer can exist per session.
 *   **Timer Auto-Cancellation**: Any existing pending timer for a session is automatically marked `cancelled` whenever a new event occurs or a new timer is set.
 *   **Idempotency**: Tasks must be marked `completed` before execution to prevent double-firing.

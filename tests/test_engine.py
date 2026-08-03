@@ -150,3 +150,32 @@ async def test_strict_single_pending_timer_invariant(test_db: AsyncSession):
     )
     pending_tasks = result.scalars().all()
     assert len(pending_tasks) == 1
+
+
+@pytest.mark.asyncio
+async def test_default_60s_wakeup_timer_fallback(test_db: AsyncSession):
+    session = await crud.create_session(test_db, system_prompt="Test Prompt")
+    await crud.create_message(test_db, session.id, MessageRole.USER, "Just speak, no set_timer.")
+
+    mock_llm = LLMClient()
+    mock_llm.generate_actions = AsyncMock(
+        return_value=LLMActionResponse(
+            actions=[SpeakAction(content="Hello!")]
+        )
+    )
+
+    result = await process_event(test_db, session.id, llm_client=mock_llm)
+    assert result["status"] == "success"
+    assert result["timers_set"] == 1
+
+    from sqlalchemy import select
+    from app.models.task import ScheduledTaskModel
+    task_res = await test_db.execute(
+        select(ScheduledTaskModel).where(
+            ScheduledTaskModel.session_id == session.id,
+            ScheduledTaskModel.status == TaskStatus.PENDING,
+        )
+    )
+    task = task_res.scalar_one_or_none()
+    assert task is not None
+    assert task.status == TaskStatus.PENDING

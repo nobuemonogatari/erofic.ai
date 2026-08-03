@@ -1,6 +1,6 @@
 # Core AI Chat Engine (erofic.ai)
 
-A headless, event-driven AI chat engine built with **FastAPI**, **SQLite** (SQLAlchemy 2.0 Async), and **OpenAI's SDK**. Designed to simulate human conversational behavior with asynchronous messaging, time awareness, delayed responses, and proactive "double-texting".
+A headless, event-driven AI chat engine built with **FastAPI**, **SQLite** (SQLAlchemy 2.0 Async), and **OpenAI's SDK**. Designed to simulate human conversational behavior with event triggers, time-aware context management, and structured LLM actions.
 
 ---
 
@@ -13,12 +13,11 @@ A headless, event-driven AI chat engine built with **FastAPI**, **SQLite** (SQLA
 
 ## ⚡ Core Features & Capabilities
 
-- **Event-Driven Architecture**: Operates on discrete triggers (user message API calls or scheduled timer elapses), executes bounded logic, and spins down.
-- **Proactive "Double-Texting"**: The LLM can return structured `schedule` actions to send proactive follow-up messages after a specified delay (`delay_seconds`).
+- **Event-Driven Architecture**: Operates on discrete triggers (user message API calls or background timer elapses), executes bounded logic, and spins down.
 - **Time-Aware Context Engine**: Injects current system time and time elapsed since the last message into every LLM call (e.g. *"System: It is currently 2:00 PM. The user has not replied in 4 hours."*).
 - **Safety Guardrails**:
   - **Recursion Limit**: Prevents infinite talking loops (max 3 consecutive assistant messages without user intervention).
-  - **Idempotency**: Atomic status updates mark scheduled tasks as `completed` before execution to prevent double-firing.
+  - **Idempotency**: Atomic status updates mark background tasks as `completed` before execution to prevent double-firing.
   - **JSON Fallback**: Safe error handling for malformed LLM responses.
 
 ---

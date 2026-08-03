@@ -12,11 +12,10 @@ SYSTEM_JSON_INSTRUCTION = (
     "You must respond with valid JSON matching the following schema:\n"
     "{\n"
     '  "actions": [\n'
-    '    {"type": "speak", "content": "plain text response message here"},\n'
-    '    {"type": "schedule", "content": "plain text delayed message here", "delay_seconds": 120}\n'
+    '    {"type": "speak", "content": "plain text response message here"}\n'
     "  ]\n"
     "}\n"
-    "Return plain natural language text in the content field. Do NOT wrap content in HTML/XML tags like <text>."
+    "Return plain natural language text in the content field. Do NOT wrap content in HTML/XML tags."
 )
 
 

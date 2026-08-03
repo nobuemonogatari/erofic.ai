@@ -66,13 +66,15 @@ async def process_event(
             )
             spoken_count += 1
         elif action_type == "set_timer":
+            # Strict Invariant: At most 1 pending timer per session
+            await crud.cancel_pending_tasks_for_session(db, session_id)
             execute_at = now + timedelta(seconds=action.delay_seconds)
             await crud.create_scheduled_task(
                 db=db,
                 session_id=session_id,
                 execute_at=execute_at,
             )
-            timers_set_count += 1
+            timers_set_count = 1
 
     return {
         "status": "success",

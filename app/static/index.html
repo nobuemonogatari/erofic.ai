@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>erofic.ai - Chat Engine Tester</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      --panel-bg: rgba(30, 41, 59, 0.7);
+      --border-color: rgba(255, 255, 255, 0.1);
+      --primary-color: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent-color: #06b6d4;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --user-msg-bg: #312e81;
+      --assistant-msg-bg: #1e293b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      background: linear-gradient(to right, #818cf8, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      font-weight: 500;
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 8px #34d399;
+    }
+
+    .container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 320px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+      gap: 1.25rem;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .create-session-card {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    textarea, input[type="text"] {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.6rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus, input[type="text"]:focus {
+      border-color: var(--primary-color);
+    }
+
+    button {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 0.6rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+    }
+
+    .session-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .session-item {
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 0.6rem;
+      padding: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .session-item:hover {
+      background: rgba(30, 41, 59, 0.8);
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+
+    .session-item.active {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: var(--primary-color);
+    }
+
+    .session-id {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #a5b4fc;
+      margin-bottom: 0.2rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .session-prompt {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Main Chat Area */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: rgba(15, 23, 42, 0.4);
+    }
+
+    .chat-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(15, 23, 42, 0.6);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .active-session-info {
+      font-size: 0.85rem;
+    }
+
+    .active-session-info span {
+      color: var(--text-muted);
+    }
+
+    .messages-container {
+      flex: 1;
+      padding: 1.5rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .message-bubble {
+      max-width: 75%;
+      padding: 0.85rem 1.1rem;
+      border-radius: 1rem;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      position: relative;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message-bubble.user {
+      align-self: flex-end;
+      background: var(--user-msg-bg);
+      border-bottom-right-radius: 0.25rem;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .message-bubble.assistant {
+      align-self: flex-start;
+      background: var(--assistant-msg-bg);
+      border-bottom-left-radius: 0.25rem;
+      border: 1px solid var(--border-color);
+    }
+
+    .msg-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .msg-role {
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .msg-role.user { color: #818cf8; }
+    .msg-role.assistant { color: #38bdf8; }
+
+    .chat-input-bar {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border-color);
+      background: rgba(15, 23, 42, 0.7);
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .chat-input-bar input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+    }
+
+    .empty-state {
+      margin: auto;
+      text-align: center;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>erofic.ai Chat Engine Tester</h1>
+    <div class="badge">
+      <div class="badge-dot"></div>
+      Auto-polling Active (2s)
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div>
+        <div class="section-title">New Session</div>
+        <div class="create-session-card">
+          <textarea id="systemPromptInput" rows="3" placeholder="System prompt (e.g. You are a helpful assistant...)"></textarea>
+          <button onclick="createSession()">Create Session</button>
+        </div>
+      </div>
+
+      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+        <div class="section-title">Sessions (<span id="sessionCount">0</span>)</div>
+        <div id="sessionList" class="session-list"></div>
+      </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="chat-area">
+      <div class="chat-header">
+        <div class="active-session-info">
+          Active Session: <strong id="activeSessionId">None</strong>
+        </div>
+        <button style="padding: 0.35rem 0.75rem; font-size: 0.75rem;" onclick="fetchSessions()">Refresh Sessions</button>
+      </div>
+
+      <div id="messagesContainer" class="messages-container">
+        <div class="empty-state">
+          <p>Select or create a session to start testing.</p>
+        </div>
+      </div>
+
+      <div class="chat-input-bar">
+        <input type="text" id="userInput" placeholder="Type a message..." onkeypress="handleKeyPress(event)" disabled>
+        <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activeSessionId = null;
+    let knownMessageIds = new Set();
+
+    async function fetchSessions() {
+      try {
+        const res = await fetch('/sessions');
+        const sessions = await res.json();
+        const listEl = document.getElementById('sessionList');
+        document.getElementById('sessionCount').innerText = sessions.length;
+
+        listEl.innerHTML = '';
+        sessions.forEach(s => {
+          const item = document.createElement('div');
+          item.className = `session-item ${s.id === activeSessionId ? 'active' : ''}`;
+          item.onclick = () => selectSession(s.id);
+          item.innerHTML = `
+            <div class="session-id">${s.id}</div>
+            <div class="session-prompt">${s.system_prompt || 'Default prompt'}</div>
+          `;
+          listEl.appendChild(item);
+        });
+      } catch (err) {
+        console.error('Error fetching sessions:', err);
+      }
+    }
+
+    async function createSession() {
+      const prompt = document.getElementById('systemPromptInput').value;
+      try {
+        const res = await fetch('/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ system_prompt: prompt })
+        });
+        const newSession = await res.json();
+        document.getElementById('systemPromptInput').value = '';
+        await fetchSessions();
+        selectSession(newSession.id);
+      } catch (err) {
+        console.error('Error creating session:', err);
+      }
+    }
+
+    function selectSession(sessionId) {
+      activeSessionId = sessionId;
+      knownMessageIds.clear();
+      document.getElementById('activeSessionId').innerText = sessionId;
+      document.getElementById('userInput').disabled = false;
+      document.getElementById('sendBtn').disabled = false;
+      document.getElementById('messagesContainer').innerHTML = '';
+      fetchSessions();
+      fetchMessages();
+    }
+
+    async function fetchMessages() {
+      if (!activeSessionId) return;
+
+      try {
+        const res = await fetch(`/sessions/${activeSessionId}/messages`);
+        if (!res.ok) return;
+
+        const messages = await res.json();
+        const container = document.getElementById('messagesContainer');
+
+        if (messages.length === 0 && knownMessageIds.size === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <p>No messages yet. Send a message to trigger the engine.</p>
+            </div>
+          `;
+          return;
+        }
+
+        if (knownMessageIds.size === 0) {
+          container.innerHTML = '';
+        }
+
+        let newAdded = false;
+        messages.forEach(m => {
+          if (!knownMessageIds.has(m.id)) {
+            knownMessageIds.add(m.id);
+            newAdded = true;
+
+            const bubble = document.createElement('div');
+            bubble.className = `message-bubble ${m.role}`;
+            
+            const formattedTime = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            bubble.innerHTML = `
+              <div class="msg-header">
+                <span class="msg-role ${m.role}">${m.role}</span>
+                <span>${formattedTime}</span>
+              </div>
+              <div class="msg-content">${escapeHtml(m.content)}</div>
+            `;
+            container.appendChild(bubble);
+          }
+        });
+
+        if (newAdded) {
+          container.scrollTop = container.scrollHeight;
+        }
+      } catch (err) {
+        console.error('Error fetching messages:', err);
+      }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('userInput');
+      const content = input.value.trim();
+      if (!content || !activeSessionId) return;
+
+      input.value = '';
+
+      try {
+        await fetch(`/sessions/${activeSessionId}/message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        // Immediately trigger polling to show user message
+        fetchMessages();
+      } catch (err) {
+        console.error('Error sending message:', err);
+      }
+    }
+
+    function handleKeyPress(e) {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // Initial load
+    fetchSessions();
+
+    // Auto-poll messages every 2 seconds
+    setInterval(() => {
+      fetchMessages();
+    }, 2000);
+  </script>
+</body>
+</html>

@@ -444,16 +444,20 @@
         const tasks = taskRes.ok ? await taskRes.json() : [];
         const container = document.getElementById('messagesContainer');
 
-        if (messages.length === 0 && tasks.length === 0 && knownMessageIds.size === 0 && knownTaskStates.size === 0) {
-          container.innerHTML = `
-            <div class="empty-state">
-              <p>No messages yet. Send a message to trigger the engine.</p>
-            </div>
-          `;
+        if (messages.length === 0 && tasks.length === 0) {
+          if (!container.querySelector('.empty-state')) {
+            container.innerHTML = `
+              <div class="empty-state">
+                <p>No messages yet. Send a message to trigger the engine.</p>
+              </div>
+            `;
+          }
           return;
         }
 
-        if (knownMessageIds.size === 0 && knownTaskStates.size === 0) {
+        // Remove empty state if present
+        const emptyState = container.querySelector('.empty-state');
+        if (emptyState) {
           container.innerHTML = '';
         }
 
@@ -462,7 +466,7 @@
         messages.forEach(m => {
           timeline.push({
             kind: 'message',
-            id: m.id,
+            id: `msg-${m.id}`,
             timestamp: new Date(m.timestamp),
             data: m
           });
@@ -471,7 +475,7 @@
         tasks.forEach(t => {
           timeline.push({
             kind: 'task',
-            id: `task-${t.id}-${t.status}`,
+            id: `task-${t.id}`,
             timestamp: new Date(t.execute_at),
             data: t
           });
@@ -480,26 +484,31 @@
         // Sort strictly by timestamp ascending
         timeline.sort((a, b) => a.timestamp - b.timestamp);
 
-        container.innerHTML = '';
-        timeline.forEach(item => {
-          if (item.kind === 'message') {
-            const m = item.data;
-            const bubble = document.createElement('div');
-            bubble.className = `message-bubble ${m.role}`;
-            const formattedTime = item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        let newAdded = false;
 
-            bubble.innerHTML = `
-              <div class="msg-header">
-                <span class="msg-role ${m.role}">${m.role}</span>
-                <span>${formattedTime}</span>
-              </div>
-              <div class="msg-content">${escapeHtml(m.content)}</div>
-            `;
-            container.appendChild(bubble);
+        timeline.forEach(item => {
+          let existingEl = document.getElementById(item.id);
+
+          if (item.kind === 'message') {
+            if (!existingEl) {
+              const m = item.data;
+              const bubble = document.createElement('div');
+              bubble.id = item.id;
+              bubble.className = `message-bubble ${m.role}`;
+              const formattedTime = item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+              bubble.innerHTML = `
+                <div class="msg-header">
+                  <span class="msg-role ${m.role}">${m.role}</span>
+                  <span>${formattedTime}</span>
+                </div>
+                <div class="msg-content">${escapeHtml(m.content)}</div>
+              `;
+              container.appendChild(bubble);
+              newAdded = true;
+            }
           } else if (item.kind === 'task') {
             const t = item.data;
-            const sysBubble = document.createElement('div');
-            sysBubble.className = `message-bubble system ${t.status}`;
             const execTime = item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
             let eventText = '';
@@ -511,12 +520,27 @@
               eventText = `🚫 [System Event] Pending timer cancelled due to new activity (Status: CANCELLED)`;
             }
 
-            sysBubble.innerText = eventText;
-            container.appendChild(sysBubble);
+            if (!existingEl) {
+              const sysBubble = document.createElement('div');
+              sysBubble.id = item.id;
+              sysBubble.className = `message-bubble system ${t.status}`;
+              sysBubble.innerText = eventText;
+              container.appendChild(sysBubble);
+              newAdded = true;
+            } else {
+              // Update in-place if status updated
+              const newClassName = `message-bubble system ${t.status}`;
+              if (existingEl.className !== newClassName || existingEl.innerText !== eventText) {
+                existingEl.className = newClassName;
+                existingEl.innerText = eventText;
+              }
+            }
           }
         });
 
-        container.scrollTop = container.scrollHeight;
+        if (newAdded) {
+          container.scrollTop = container.scrollHeight;
+        }
       } catch (err) {
         console.error('Error fetching stream:', err);
       }

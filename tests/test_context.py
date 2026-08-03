@@ -35,3 +35,27 @@ def test_build_llm_messages_time_injection():
     assert "It is currently 2026-08-03 08:00 PM UTC" in payload[1]["content"]
     assert "The user sent their message 4 hours ago." in payload[1]["content"]
     assert payload[2] == {"role": "user", "content": "Hello!"}
+
+
+def test_build_llm_messages_chronological_ordering():
+    now = datetime(2026, 8, 3, 20, 10, 0, tzinfo=timezone.utc)
+    t1 = now - timedelta(minutes=5)
+    t2 = now - timedelta(minutes=3)
+    t3 = now - timedelta(minutes=1)
+
+    m1 = MessageModel(id="1", session_id="s1", role=MessageRole.USER, content="Msg 1 (First)", timestamp=t1)
+    m2 = MessageModel(id="2", session_id="s1", role=MessageRole.ASSISTANT, content="Msg 2 (Second)", timestamp=t2)
+    m3 = MessageModel(id="3", session_id="s1", role=MessageRole.USER, content="Msg 3 (Third)", timestamp=t3)
+
+    payload = build_llm_messages(
+        system_prompt="Test System",
+        messages=[m1, m2, m3],
+        current_time=now,
+    )
+
+    assert len(payload) == 5
+    assert payload[0]["content"] == "Test System"
+    assert "It is currently" in payload[1]["content"]
+    assert payload[2] == {"role": "user", "content": "Msg 1 (First)"}
+    assert payload[3] == {"role": "assistant", "content": "Msg 2 (Second)"}
+    assert payload[4] == {"role": "user", "content": "Msg 3 (Third)"}

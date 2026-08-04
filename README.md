@@ -14,7 +14,6 @@ A headless, event-driven AI chat engine built with **FastAPI**, **SQLite** (SQLA
 ## ⚡ Core Features & Capabilities
 
 - **Event-Driven Architecture**: Operates on discrete triggers (user message API calls or background timer elapses), executes bounded logic, and spins down.
-- **Multiple Sequential Texts**: The LLM can send multiple `speak` actions in a single turn to break up text into natural, human-like short messages.
 - **Autonomous In-Memory Re-Pings**: The engine automatically schedules a 30-second background timer after every execution turn. If the user doesn't reply within 30 seconds, it wakes up the LLM to decide whether to send a follow-up check-in or remain silent.
 - **Delineated Time & Event Context**: Groups relative elapsed time, triggers, and execution guidelines into a single, unified notice appended to the very end of the LLM context.
 - **Safety & Invariant Guardrails**:

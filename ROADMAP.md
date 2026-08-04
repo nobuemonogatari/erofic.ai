@@ -30,8 +30,8 @@ This document outlines the roadmap for the **Core AI Chat Engine**.
 
 ## Phase 3: LLM Interface & Schema Engine
 
-- [x] **Task 3.1: LLM Action Schemas**
-  - Implement `app/engine/schema.py` defining Pydantic models for `SpeakAction`.
+- [x] **Task 3.1: LLM Response Schemas**
+  - Define simple `LLMResponse` Pydantic schema class.
 
 - [x] **Task 3.2: Context Management & Delineated Notices**
   - Implement simplified, chronologically ordered sliding window history builder. Appends a trailing event notice with relative time elapsed.
@@ -47,7 +47,7 @@ This document outlines the roadmap for the **Core AI Chat Engine**.
   - Implement recursion limits checking to prevent infinite chatbot loops.
 
 - [x] **Task 4.2: Event Processor**
-  - Execute event cycles (user inputs and re-pings), saving `speak` actions as assistant messages, and scheduling background re-ping timers.
+  - Execute event cycles (user inputs and re-pings), saving the assistant message, and scheduling background re-ping timers.
 
 ---
 

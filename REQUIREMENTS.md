@@ -1,7 +1,7 @@
 # Core AI Chat Engine – V1 Requirements (Updated)
 
 ## 1. Objective
-Build a headless, event-driven chat engine that simulates human conversational behavior. The system supports event triggers, relative time-aware context management, multiple sequential messages, and structured LLM responses without relying on a persistent, database-backed background loop.
+Build a headless, event-driven chat engine that simulates human conversational behavior. The system supports event triggers, relative time-aware context management, and structured LLM responses without relying on a persistent database-backed background loop.
 
 ## 2. Core Architecture: Event-Driven
 The engine operates on discrete events. It wakes up, executes bounded logic, and spins down.
@@ -15,8 +15,8 @@ The engine operates on discrete events. It wakes up, executes bounded logic, and
 2. Cancel any pending in-memory re-ping timers for the session.
 3. Append time elapsed context.
 4. Call the LLM with a strict JSON schema requirement.
-5. Parse the LLM's chosen actions (`speak` actions).
-6. Save new messages and schedule a new 30-second re-ping timer.
+5. Parse the LLM's chosen message.
+6. Save the new message and schedule a new 30-second re-ping timer.
 7. Exit.
 
 ## 3. Data Models (SQLite)
@@ -34,26 +34,14 @@ The engine operates on discrete events. It wakes up, executes bounded logic, and
 *   `timestamp` (Timestamp)
 
 ## 4. LLM Interface & Action Schema
-To achieve autonomy, the LLM returns structured JSON containing chosen `speak` actions.
+To achieve autonomy, the LLM returns structured JSON containing its message.
 
 **Required LLM Output Schema:**
 ```json
 {
-  "actions": [
-    {
-      "type": "speak",
-      "content": "First short text message."
-    },
-    {
-      "type": "speak",
-      "content": "Second follow-up text message."
-    }
-  ]
+  "message": "The assistant's conversational response here."
 }
 ```
-*Notes:*
-- **Multiple `speak` actions**: Supported in a single turn so the assistant can send multiple short, natural text messages in sequence.
-- **Silence (No speak)**: If the LLM has nothing to say, it can respond with an empty actions array `{"actions": []}`.
 
 ## 5. Context Management (V1)
 *   **Method:** Simple Sliding Window.

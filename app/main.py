@@ -16,7 +16,15 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+# Mute verbose SQLite / SQLAlchemy query logs in DEBUG mode
+logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.dialects").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.orm").setLevel(logging.WARNING)
+logging.getLogger("aiosqlite").setLevel(logging.WARNING)
+
 logger = logging.getLogger(__name__)
+
 
 scheduler_worker = TaskSchedulerWorker(session_factory=async_session_factory)
 STATIC_DIR = Path(__file__).parent / "static"

@@ -27,8 +27,10 @@ SYSTEM_JSON_INSTRUCTION = (
     "Guidelines:\n"
     "- You can include multiple sequential 'speak' actions to send multiple short, natural human-like text messages.\n"
     "- 'delay_seconds' for set_timer must be an integer between 10 and 60.\n"
-    "- Return plain text in speak content without HTML/XML tags."
+    "- Return plain text in speak content without HTML/XML tags.\n"
+    "- Conversation Continuity: Check the chat history carefully. Never repeat, summarize, or re-generate statements you already sent to the user. Advance the conversation forward."
 )
+
 
 
 class LLMClient:

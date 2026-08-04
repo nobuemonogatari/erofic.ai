@@ -51,6 +51,7 @@ async def process_event(
             system_prompt=session_obj.system_prompt,
             messages=messages,
             current_time=now,
+            trigger_type=trigger_type,
         )
         logger.debug(f"[ENGINE] Prepared LLM payload with {len(llm_payload)} items (including time awareness)")
 

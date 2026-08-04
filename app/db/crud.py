@@ -4,10 +4,9 @@ from typing import Sequence
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import MessageRole, TaskStatus
+from app.models import MessageRole
 from app.models.session import SessionModel
 from app.models.message import MessageModel
-from app.models.task import ScheduledTaskModel
 
 
 async def create_session(
@@ -68,95 +67,4 @@ async def get_messages_for_session(
     return result.scalars().all()
 
 
-async def create_scheduled_task(
-    db: AsyncSession, session_id: str, execute_at: datetime
-) -> ScheduledTaskModel:
-    task_obj = ScheduledTaskModel(
-        session_id=session_id,
-        execute_at=execute_at,
-        status=TaskStatus.PENDING,
-    )
-    db.add(task_obj)
-    await db.commit()
-    await db.refresh(task_obj)
-    return task_obj
-
-
-async def get_scheduled_task(
-    db: AsyncSession, task_id: str
-) -> ScheduledTaskModel | None:
-    result = await db.execute(
-        select(ScheduledTaskModel).where(ScheduledTaskModel.id == task_id)
-    )
-    return result.scalar_one_or_none()
-
-
-async def get_pending_tasks_due(
-    db: AsyncSession, now: datetime | None = None
-) -> Sequence[ScheduledTaskModel]:
-    current_time = now or datetime.now(timezone.utc)
-    result = await db.execute(
-        select(ScheduledTaskModel)
-        .where(
-            ScheduledTaskModel.status == TaskStatus.PENDING,
-            ScheduledTaskModel.execute_at <= current_time,
-        )
-        .order_by(ScheduledTaskModel.execute_at.asc())
-    )
-    return result.scalars().all()
-
-
-async def claim_pending_task(
-    db: AsyncSession, task_id: str
-) -> bool:
-    result = await db.execute(
-        update(ScheduledTaskModel)
-        .where(
-            ScheduledTaskModel.id == task_id,
-            ScheduledTaskModel.status == TaskStatus.PENDING,
-        )
-        .values(status=TaskStatus.EXECUTING)
-    )
-    await db.commit()
-    return result.rowcount > 0
-
-
-async def mark_task_status(
-    db: AsyncSession, task_id: str, status: TaskStatus
-) -> ScheduledTaskModel | None:
-    task = await get_scheduled_task(db, task_id)
-    if task:
-        task.status = status
-        await db.commit()
-        await db.refresh(task)
-    return task
-
-
-async def cancel_pending_tasks_for_session(
-    db: AsyncSession, session_id: str
-) -> int:
-    result = await db.execute(
-        select(ScheduledTaskModel).where(
-            ScheduledTaskModel.session_id == session_id,
-            ScheduledTaskModel.status == TaskStatus.PENDING,
-        )
-    )
-    pending_tasks = result.scalars().all()
-    count = 0
-    for task in pending_tasks:
-        task.status = TaskStatus.CANCELLED
-        count += 1
-    if count > 0:
-        await db.commit()
-    return count
-
-
-async def get_tasks_for_session(
-    db: AsyncSession, session_id: str
-) -> Sequence[ScheduledTaskModel]:
-    result = await db.execute(
-        select(ScheduledTaskModel)
-        .where(ScheduledTaskModel.session_id == session_id)
-        .order_by(ScheduledTaskModel.execute_at.asc())
-    )
-    return result.scalars().all()
+# Database-backed task CRUD operations removed in favor of in-memory TimerManager.

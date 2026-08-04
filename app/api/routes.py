@@ -7,7 +7,6 @@ from app.api.schemas import (
     MessageResponse,
     SessionCreateRequest,
     SessionResponse,
-    TaskResponse,
 )
 from app.db import crud
 from app.db.session import async_session_factory, get_async_session
@@ -96,18 +95,10 @@ async def get_messages_endpoint(
     return messages
 
 
-@router.get("/sessions/{session_id}/tasks", response_model=list[TaskResponse])
-async def get_session_tasks_endpoint(
-    session_id: str,
-    db: AsyncSession = Depends(get_async_session),
-):
-    session_obj = await crud.get_session(db, session_id)
-    if not session_obj:
-        logger.warning(f"[API] GET tasks failed - Session {session_id} not found")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
-        )
-
-    tasks = await crud.get_tasks_for_session(db, session_id)
-    logger.debug(f"[API] Fetched {len(tasks)} task(s) for session {session_id}")
-    return tasks
+async def trigger_re_ping(session_id: str):
+    async with async_session_factory() as db:
+        try:
+            logger.info(f"[API] Executing in-memory re-ping event processor for session {session_id}...")
+            await process_event(db=db, session_id=session_id, trigger_type="scheduled_action")
+        except Exception as e:
+            logger.error(f"[API] Error executing re-ping event processor for session {session_id}: {e}")

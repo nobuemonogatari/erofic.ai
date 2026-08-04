@@ -58,21 +58,22 @@ async def test_sessions_and_messages_endpoints(async_client: AsyncClient):
     assert len(sessions_list) >= 1
     assert any(s["id"] == session_id for s in sessions_list)
 
-    # 2. Post User Message (mock LLM response)
-    with patch(
-        "app.engine.processor.LLMClient.generate_actions",
-        new_callable=AsyncMock,
-        return_value=LLMActionResponse(
-            actions=[SpeakAction(content="Bot reply via API")]
-        ),
-    ):
-        msg_res = await async_client.post(
-            f"/sessions/{session_id}/message", json={"content": "Hello bot!"}
-        )
-        assert msg_res.status_code == 201
-        msg_data = msg_res.json()
-        assert msg_data["role"] == "user"
-        assert msg_data["content"] == "Hello bot!"
+    with patch("app.engine.processor.timer_manager.schedule_re_ping") as mock_schedule:
+        # 2. Post User Message (mock LLM response)
+        with patch(
+            "app.engine.processor.LLMClient.generate_actions",
+            new_callable=AsyncMock,
+            return_value=LLMActionResponse(
+                actions=[SpeakAction(content="Bot reply via API")]
+            ),
+        ):
+            msg_res = await async_client.post(
+                f"/sessions/{session_id}/message", json={"content": "Hello bot!"}
+            )
+            assert msg_res.status_code == 201
+            msg_data = msg_res.json()
+            assert msg_data["role"] == "user"
+            assert msg_data["content"] == "Hello bot!"
 
     # 3. Get Messages
     get_res = await async_client.get(f"/sessions/{session_id}/messages")
@@ -84,9 +85,3 @@ async def test_sessions_and_messages_endpoints(async_client: AsyncClient):
     assert messages[1]["role"] == "assistant"
     assert messages[1]["content"] == "Bot reply via API"
 
-    # 4. Get Tasks (Debug endpoint)
-    tasks_res = await async_client.get(f"/sessions/{session_id}/tasks")
-    assert tasks_res.status_code == 200
-    tasks = tasks_res.json()
-    assert len(tasks) >= 1
-    assert tasks[0]["status"] == "pending"

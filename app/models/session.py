@@ -28,6 +28,4 @@ class SessionModel(Base):
     messages: Mapped[list["MessageModel"]] = relationship(
         "MessageModel", back_populates="session", cascade="all, delete-orphan"
     )
-    scheduled_tasks: Mapped[list["ScheduledTaskModel"]] = relationship(
-        "ScheduledTaskModel", back_populates="session", cascade="all, delete-orphan"
-    )
+

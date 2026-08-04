@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import crud
 from app.engine.context import build_llm_messages
 from app.engine.guardrails import check_recursion_limit
-from app.engine.llm import LLMClient, LLMGenerationError
+from app.engine.llm import LLMClient, LLMGenerationError, SYSTEM_JSON_INSTRUCTION
 from app.engine.lock import session_lock_manager
 from app.models import MessageRole
 
@@ -49,6 +49,7 @@ async def process_event(
         now = datetime.now(timezone.utc)
         llm_payload = build_llm_messages(
             system_prompt=session_obj.system_prompt,
+            system_instruction=SYSTEM_JSON_INSTRUCTION,
             messages=messages,
             current_time=now,
             trigger_type=trigger_type,

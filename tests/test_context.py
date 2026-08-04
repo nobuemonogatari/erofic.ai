@@ -26,16 +26,20 @@ def test_build_llm_messages_time_injection():
 
     payload = build_llm_messages(
         system_prompt="Base system prompt",
+        system_instruction="Response Guidelines",
         messages=[msg],
         current_time=now,
     )
 
-    assert len(payload) == 4
-    assert payload[0] == {"role": "system", "content": "Base system prompt"}
-    assert "It is currently 2026-08-03 08:00 PM UTC" in payload[1]["content"]
-    assert "The user sent their message 4 hours ago." in payload[1]["content"]
-    assert "[TRIGGER: USER_INPUT]" in payload[2]["content"]
-    assert payload[3] == {"role": "user", "content": "Hello!"}
+    assert len(payload) == 2
+    assert payload[0]["role"] == "system"
+    assert "# BASE INSTRUCTIONS\nBase system prompt" in payload[0]["content"]
+    assert "Current Time: 2026-08-03 08:00 PM UTC" in payload[0]["content"]
+    assert "The user sent their message 4 hours ago." in payload[0]["content"]
+    assert "Response Guidelines" in payload[0]["content"]
+    assert "[TRIGGER: USER_INPUT]" not in payload[0]["content"]  # It uses Trigger: USER_INPUT format now
+    assert "Trigger: USER_INPUT" in payload[0]["content"]
+    assert payload[1] == {"role": "user", "content": "Hello!"}
 
 
 def test_build_llm_messages_chronological_ordering():
@@ -50,17 +54,18 @@ def test_build_llm_messages_chronological_ordering():
 
     payload = build_llm_messages(
         system_prompt="Test System",
+        system_instruction="Format Guidelines",
         messages=[m1, m2, m3],
         current_time=now,
     )
 
-    assert len(payload) == 6
-    assert payload[0]["content"] == "Test System"
-    assert "It is currently" in payload[1]["content"]
-    assert "[TRIGGER: USER_INPUT]" in payload[2]["content"]
-    assert payload[3] == {"role": "user", "content": "Msg 1 (First)"}
-    assert payload[4] == {"role": "assistant", "content": "Msg 2 (Second)"}
-    assert payload[5] == {"role": "user", "content": "Msg 3 (Third)"}
+    assert len(payload) == 4
+    assert payload[0]["role"] == "system"
+    assert "# BASE INSTRUCTIONS\nTest System" in payload[0]["content"]
+    assert "Format Guidelines" in payload[0]["content"]
+    assert payload[1] == {"role": "user", "content": "Msg 1 (First)"}
+    assert payload[2] == {"role": "assistant", "content": "Msg 2 (Second)"}
+    assert payload[3] == {"role": "user", "content": "Msg 3 (Third)"}
 
 
 def test_build_llm_messages_trigger_notices():
@@ -70,20 +75,28 @@ def test_build_llm_messages_trigger_notices():
     # Test user_input trigger notice
     payload_user = build_llm_messages(
         system_prompt="Test System",
+        system_instruction="Guidelines",
         messages=[m1],
         current_time=now,
         trigger_type="user_input"
     )
-    assert "[TRIGGER: USER_INPUT]" in payload_user[2]["content"]
-    assert "Respond ONLY to the user's latest input" in payload_user[2]["content"]
+    assert len(payload_user) == 2
+    assert "Trigger: USER_INPUT" in payload_user[0]["content"]
+    assert "Respond ONLY to the user's latest input" in payload_user[0]["content"]
+    assert payload_user[1] == {"role": "user", "content": "Msg 1"}
 
     # Test scheduled_action trigger notice
     payload_scheduled = build_llm_messages(
         system_prompt="Test System",
+        system_instruction="Guidelines",
         messages=[m1],
         current_time=now,
         trigger_type="scheduled_action"
     )
-    assert "[TRIGGER: AUTONOMOUS_TIMER_WAKEUP]" in payload_scheduled[2]["content"]
-    assert "DO NOT repeat, re-answer, or summarize" in payload_scheduled[2]["content"]
+    assert len(payload_scheduled) == 3
+    assert "Trigger: AUTONOMOUS_TIMER_WAKEUP" in payload_scheduled[0]["content"]
+    assert payload_scheduled[1] == {"role": "user", "content": "Msg 1"}
+    assert payload_scheduled[2]["role"] == "system"
+    assert "SYSTEM EVENT: 1 minute have elapsed. Your scheduled timer has expired. The user has not sent any new messages since your last action. Respond to this event now." in payload_scheduled[2]["content"]
+
 

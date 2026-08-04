@@ -23,6 +23,7 @@ def build_llm_messages(
     messages: Sequence[MessageModel],
     max_history: int = 20,
     current_time: datetime | None = None,
+    trigger_type: str = "user_input",
 ) -> list[dict[str, str]]:
     now = current_time or datetime.now(timezone.utc)
     llm_payload: list[dict[str, str]] = []
@@ -54,7 +55,25 @@ def build_llm_messages(
 
     llm_payload.append({"role": "system", "content": time_info})
 
-    # 4. Append chat history
+    # 4. Inject Trigger Notice / System Event instructions
+    if trigger_type == "scheduled_action":
+        trigger_notice = (
+            "SYSTEM EVENT [TRIGGER: AUTONOMOUS_TIMER_WAKEUP]:\n"
+            "This is an autonomous wake-up event because your scheduled timer has expired.\n"
+            "The user has NOT sent a new message since your last reply.\n"
+            "All previous messages in the history have already been sent to the user.\n"
+            "DO NOT repeat, re-answer, or summarize any previous assistant messages in the chat history.\n"
+            "Either send a natural follow-up double-text if appropriate, or set a timer to keep waiting."
+        )
+    else:
+        trigger_notice = (
+            "SYSTEM EVENT [TRIGGER: USER_INPUT]:\n"
+            "The user has sent a new message. Respond ONLY to the user's latest input.\n"
+            "Review the chat history for context, but do not repeat or re-state previous assistant replies."
+        )
+    llm_payload.append({"role": "system", "content": trigger_notice})
+
+    # 5. Append chat history
     for msg in recent_messages:
         llm_payload.append({
             "role": msg.role.value if hasattr(msg.role, "value") else str(msg.role),
@@ -62,3 +81,4 @@ def build_llm_messages(
         })
 
     return llm_payload
+

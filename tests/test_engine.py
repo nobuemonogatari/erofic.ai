@@ -179,3 +179,42 @@ async def test_default_60s_wakeup_timer_fallback(test_db: AsyncSession):
     task = task_res.scalar_one_or_none()
     assert task is not None
     assert task.status == TaskStatus.PENDING
+    # Difference should be ~60 seconds
+    execute_at = task.execute_at if task.execute_at.tzinfo else task.execute_at.replace(tzinfo=timezone.utc)
+    time_diff = (execute_at - datetime.now(timezone.utc)).total_seconds()
+    assert 55 <= time_diff <= 65
+
+
+@pytest.mark.asyncio
+async def test_llm_failure_10s_error_retry_timer(test_db: AsyncSession):
+    from app.engine.llm import LLMGenerationError
+
+    session = await crud.create_session(test_db, system_prompt="Test Prompt")
+    await crud.create_message(test_db, session.id, MessageRole.USER, "Test LLM error handling")
+
+    mock_llm = LLMClient()
+    mock_llm.generate_actions = AsyncMock(
+        side_effect=LLMGenerationError("Simulated API failure")
+    )
+
+    result = await process_event(test_db, session.id, llm_client=mock_llm)
+    assert result["status"] == "error"
+    assert result["timers_set"] == 1
+
+    from sqlalchemy import select
+    from app.models.task import ScheduledTaskModel
+    task_res = await test_db.execute(
+        select(ScheduledTaskModel).where(
+            ScheduledTaskModel.session_id == session.id,
+            ScheduledTaskModel.status == TaskStatus.PENDING,
+        )
+    )
+    task = task_res.scalar_one_or_none()
+    assert task is not None
+    assert task.status == TaskStatus.PENDING
+    # Difference should be ~10 seconds
+    execute_at = task.execute_at if task.execute_at.tzinfo else task.execute_at.replace(tzinfo=timezone.utc)
+    time_diff = (execute_at - datetime.now(timezone.utc)).total_seconds()
+    assert 5 <= time_diff <= 15
+
+

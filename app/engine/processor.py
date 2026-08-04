@@ -5,13 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import crud
 from app.engine.context import build_llm_messages
 from app.engine.guardrails import check_recursion_limit
-from app.engine.llm import LLMClient
+from app.engine.llm import LLMClient, LLMGenerationError
 from app.engine.lock import session_lock_manager
 from app.models import MessageRole
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_WAKEUP_TIMER_SECONDS = 60
+ERROR_RETRY_TIMER_SECONDS = 10
 
 
 async def process_event(
@@ -56,7 +57,27 @@ async def process_event(
         # 5. Call LLM Client
         client = llm_client or LLMClient()
         logger.info(f"[ENGINE] Invoking LLM (model: {client.model})...")
-        llm_response = await client.generate_actions(llm_payload)
+        try:
+            llm_response = await client.generate_actions(llm_payload)
+        except (LLMGenerationError, Exception) as e:
+            logger.error(f"[ENGINE] LLM call failed for session {session_id}: {e}")
+            # Schedule fast 10s error retry timer
+            await crud.cancel_pending_tasks_for_session(db, session_id)
+            execute_at = now + timedelta(seconds=ERROR_RETRY_TIMER_SECONDS)
+            task = await crud.create_scheduled_task(
+                db=db,
+                session_id=session_id,
+                execute_at=execute_at,
+            )
+            logger.warning(
+                f"[ERROR_RETRY] Scheduled {ERROR_RETRY_TIMER_SECONDS}s error retry timer for session {session_id} due to LLM error (execute_at: {execute_at.strftime('%H:%M:%S UTC')}, Task ID: {task.id})"
+            )
+            return {
+                "status": "error",
+                "reason": f"LLM generation failed: {e}",
+                "timers_set": 1,
+            }
+
         speak_actions = [a for a in llm_response.actions if a.type == "speak"]
         timer_actions = [a for a in llm_response.actions if a.type == "set_timer"]
         timer_summary = f"{timer_actions[0].delay_seconds}s" if timer_actions else "None"
@@ -111,3 +132,4 @@ async def process_event(
             "spoken": spoken_count,
             "timers_set": timers_set_count,
         }
+

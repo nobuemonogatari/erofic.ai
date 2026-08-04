@@ -55,9 +55,7 @@ class LLMClient:
     async def generate_actions(
         self, messages: list[dict[str, str]]
     ) -> LLMActionResponse:
-        payload_messages = [
-            {"role": "system", "content": SYSTEM_JSON_INSTRUCTION}
-        ] + messages
+        payload_messages = messages
 
         endpoint_info = f"base_url={self.base_url}" if self.base_url else "default OpenAI endpoint"
         logger.info(f"[LLM] Requesting completion from model '{self.model}' ({endpoint_info}) with {len(payload_messages)} messages (timeout={self.timeout}s)")

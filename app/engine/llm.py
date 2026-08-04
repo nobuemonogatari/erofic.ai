@@ -20,13 +20,11 @@ SYSTEM_JSON_INSTRUCTION = (
     "{\n"
     '  "actions": [\n'
     '    {"type": "speak", "content": "first short message"},\n'
-    '    {"type": "speak", "content": "second follow-up text"},\n'
-    '    {"type": "set_timer", "delay_seconds": 30}\n'
+    '    {"type": "speak", "content": "second follow-up text"}\n'
     "  ]\n"
     "}\n"
     "Guidelines:\n"
     "- You can include multiple sequential 'speak' actions to send multiple short, natural human-like text messages.\n"
-    "- 'delay_seconds' for set_timer must be an integer between 10 and 60.\n"
     "- Return plain text in speak content without HTML/XML tags.\n"
     "- Conversation Continuity: Check the chat history carefully. Never repeat, summarize, or re-generate statements you already sent to the user. Advance the conversation forward."
 )
@@ -79,10 +77,8 @@ class LLMClient:
 
             parsed_json = json.loads(raw_content)
             action_response = LLMActionResponse.model_validate(parsed_json)
-            speak_count = sum(1 for a in action_response.actions if a.type == "speak")
-            timer_action = next((a for a in action_response.actions if a.type == "set_timer"), None)
-            timer_str = f"{timer_action.delay_seconds}s" if timer_action else "None"
-            logger.info(f"[LLM] Parsed {len(action_response.actions)} action(s) from LLM (speak_msg_count={speak_count}, requested_timer={timer_str})")
+            speak_count = len(action_response.actions)
+            logger.info(f"[LLM] Parsed {speak_count} action(s) from LLM (speak_msg_count={speak_count})")
             return action_response
 
         except ValidationError as e:

@@ -54,3 +54,24 @@ async def test_scheduler_worker_idempotency_and_execution(scheduler_env):
         messages = await crud.get_messages_for_session(db, session.id)
         assert len(messages) == 1
         assert messages[0].content == "Scheduled event trigger reply"
+
+
+@pytest.mark.asyncio
+async def test_atomic_task_claiming_prevents_double_execution(scheduler_env):
+    session_factory = scheduler_env
+
+    async with session_factory() as db:
+        session = await crud.create_session(db, system_prompt="Atomic Claim Test")
+        past_time = datetime.now(timezone.utc) - timedelta(seconds=5)
+        task = await crud.create_scheduled_task(db, session.id, execute_at=past_time)
+        task_id = task.id
+
+    # Attempt to claim the same task from two separate sessions/workers concurrently
+    async with session_factory() as db1, session_factory() as db2:
+        claimed1 = await crud.claim_pending_task(db1, task_id)
+        claimed2 = await crud.claim_pending_task(db2, task_id)
+
+    # Exactly one claim should succeed
+    assert claimed1 is True
+    assert claimed2 is False
+

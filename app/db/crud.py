@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import MessageRole, TaskStatus
@@ -104,6 +104,21 @@ async def get_pending_tasks_due(
         .order_by(ScheduledTaskModel.execute_at.asc())
     )
     return result.scalars().all()
+
+
+async def claim_pending_task(
+    db: AsyncSession, task_id: str
+) -> bool:
+    result = await db.execute(
+        update(ScheduledTaskModel)
+        .where(
+            ScheduledTaskModel.id == task_id,
+            ScheduledTaskModel.status == TaskStatus.PENDING,
+        )
+        .values(status=TaskStatus.EXECUTING)
+    )
+    await db.commit()
+    return result.rowcount > 0
 
 
 async def mark_task_status(

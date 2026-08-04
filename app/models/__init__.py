@@ -9,5 +9,6 @@ class MessageRole(str, enum.Enum):
 
 class TaskStatus(str, enum.Enum):
     PENDING = "pending"
+    EXECUTING = "executing"
     COMPLETED = "completed"
     CANCELLED = "cancelled"

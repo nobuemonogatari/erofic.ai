@@ -31,15 +31,15 @@ def test_build_llm_messages_time_injection():
         current_time=now,
     )
 
-    assert len(payload) == 2
+    assert len(payload) == 3
     assert payload[0]["role"] == "system"
-    assert "# BASE INSTRUCTIONS\nBase system prompt" in payload[0]["content"]
-    assert "Current Time: 2026-08-03 08:00 PM UTC" in payload[0]["content"]
-    assert "The user sent their message 4 hours ago." in payload[0]["content"]
+    assert "# Persona & Instructions\nBase system prompt" in payload[0]["content"]
     assert "Response Guidelines" in payload[0]["content"]
-    assert "[TRIGGER: USER_INPUT]" not in payload[0]["content"]  # It uses Trigger: USER_INPUT format now
-    assert "Trigger: USER_INPUT" in payload[0]["content"]
+    assert "Current Time" not in payload[0]["content"]
     assert payload[1] == {"role": "user", "content": "Hello!"}
+    assert payload[2]["role"] == "system"
+    assert "SYSTEM EVENT [USER_INPUT]" in payload[2]["content"]
+    assert "The user sent a new message 4 hours ago" in payload[2]["content"]
 
 
 def test_build_llm_messages_chronological_ordering():
@@ -59,13 +59,16 @@ def test_build_llm_messages_chronological_ordering():
         current_time=now,
     )
 
-    assert len(payload) == 4
+    assert len(payload) == 5
     assert payload[0]["role"] == "system"
-    assert "# BASE INSTRUCTIONS\nTest System" in payload[0]["content"]
+    assert "# Persona & Instructions\nTest System" in payload[0]["content"]
     assert "Format Guidelines" in payload[0]["content"]
     assert payload[1] == {"role": "user", "content": "Msg 1 (First)"}
     assert payload[2] == {"role": "assistant", "content": "Msg 2 (Second)"}
     assert payload[3] == {"role": "user", "content": "Msg 3 (Third)"}
+    assert payload[4]["role"] == "system"
+    assert "SYSTEM EVENT [USER_INPUT]" in payload[4]["content"]
+    assert "The user sent a new message 1 minute ago" in payload[4]["content"]
 
 
 def test_build_llm_messages_trigger_notices():
@@ -80,10 +83,13 @@ def test_build_llm_messages_trigger_notices():
         current_time=now,
         trigger_type="user_input"
     )
-    assert len(payload_user) == 2
-    assert "Trigger: USER_INPUT" in payload_user[0]["content"]
-    assert "Respond ONLY to the user's latest input" in payload_user[0]["content"]
+    assert len(payload_user) == 3
+    assert payload_user[0]["role"] == "system"
     assert payload_user[1] == {"role": "user", "content": "Msg 1"}
+    assert payload_user[2]["role"] == "system"
+    assert "SYSTEM EVENT [USER_INPUT]" in payload_user[2]["content"]
+    assert "The user sent a new message 1 minute ago" in payload_user[2]["content"]
+    assert "Respond ONLY to the user's latest input" in payload_user[2]["content"]
 
     # Test scheduled_action trigger notice
     payload_scheduled = build_llm_messages(
@@ -94,9 +100,12 @@ def test_build_llm_messages_trigger_notices():
         trigger_type="scheduled_action"
     )
     assert len(payload_scheduled) == 3
-    assert "Trigger: AUTONOMOUS_TIMER_WAKEUP" in payload_scheduled[0]["content"]
+    assert payload_scheduled[0]["role"] == "system"
     assert payload_scheduled[1] == {"role": "user", "content": "Msg 1"}
     assert payload_scheduled[2]["role"] == "system"
-    assert "SYSTEM EVENT: 1 minute have elapsed. Your scheduled timer has expired. The user has not sent any new messages since your last action. Respond to this event now." in payload_scheduled[2]["content"]
+    assert "SYSTEM EVENT [AUTONOMOUS_RE_PING]" in payload_scheduled[2]["content"]
+    assert "1 minute have elapsed since your last action" in payload_scheduled[2]["content"]
+    assert "Decide if you want to follow up or remain silent" in payload_scheduled[2]["content"]
+
 
 

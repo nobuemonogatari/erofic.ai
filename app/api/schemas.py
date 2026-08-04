@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict
-from app.models import MessageRole, TaskStatus
+from app.models import MessageRole
 
 
 class SessionCreateRequest(BaseModel):
@@ -29,11 +29,3 @@ class MessageResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
-class TaskResponse(BaseModel):
-    id: str
-    session_id: str
-    execute_at: datetime
-    status: TaskStatus
-
-    model_config = ConfigDict(from_attributes=True)

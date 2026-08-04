@@ -8,10 +8,11 @@ from app.engine.guardrails import check_recursion_limit
 from app.engine.llm import LLMClient, LLMGenerationError, SYSTEM_JSON_INSTRUCTION
 from app.engine.lock import session_lock_manager
 from app.models import MessageRole
+from app.scheduler.manager import timer_manager
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_WAKEUP_TIMER_SECONDS = 60
+DEFAULT_WAKEUP_TIMER_SECONDS = 30
 ERROR_RETRY_TIMER_SECONDS = 10
 
 
@@ -23,6 +24,9 @@ async def process_event(
 ) -> dict[str, str | int]:
     async with session_lock_manager.lock(session_id):
         logger.info(f"[ENGINE] Starting event cycle for session {session_id} (trigger: {trigger_type})")
+
+        # Cancel any pending in-memory timers for this session immediately
+        timer_manager.cancel_timer(session_id)
 
         # 1. Fetch Session and Message history from SQLite
         session_obj = await crud.get_session(db, session_id)
@@ -40,12 +44,7 @@ async def process_event(
             )
             return {"status": "aborted", "reason": "Recursion limit reached"}
 
-        # 3. Auto-cancel any existing pending timers for this session
-        cancelled_timers = await crud.cancel_pending_tasks_for_session(db, session_id)
-        if cancelled_timers > 0:
-            logger.info(f"[ENGINE] Auto-cancelled {cancelled_timers} pending timer(s) for session {session_id}.")
-
-        # 4. Build context payload with system time awareness
+        # 3. Build context payload with system time awareness
         now = datetime.now(timezone.utc)
         llm_payload = build_llm_messages(
             system_prompt=session_obj.system_prompt,
@@ -56,23 +55,17 @@ async def process_event(
         )
         logger.debug(f"[ENGINE] Prepared LLM payload with {len(llm_payload)} items (including time awareness)")
 
-        # 5. Call LLM Client
+        # 4. Call LLM Client
         client = llm_client or LLMClient()
         logger.info(f"[ENGINE] Invoking LLM (model: {client.model})...")
         try:
             llm_response = await client.generate_actions(llm_payload)
         except (LLMGenerationError, Exception) as e:
             logger.error(f"[ENGINE] LLM call failed for session {session_id}: {e}")
-            # Schedule fast 10s error retry timer
-            await crud.cancel_pending_tasks_for_session(db, session_id)
-            execute_at = now + timedelta(seconds=ERROR_RETRY_TIMER_SECONDS)
-            task = await crud.create_scheduled_task(
-                db=db,
-                session_id=session_id,
-                execute_at=execute_at,
-            )
+            # Schedule fast 10s error retry in-memory timer
+            timer_manager.schedule_re_ping(session_id, delay=ERROR_RETRY_TIMER_SECONDS)
             logger.warning(
-                f"[ERROR_RETRY] Scheduled {ERROR_RETRY_TIMER_SECONDS}s error retry timer for session {session_id} due to LLM error (execute_at: {execute_at.strftime('%H:%M:%S UTC')}, Task ID: {task.id})"
+                f"[ERROR_RETRY] Scheduled {ERROR_RETRY_TIMER_SECONDS}s error retry in-memory timer for session {session_id} due to LLM error"
             )
             return {
                 "status": "error",
@@ -81,13 +74,10 @@ async def process_event(
             }
 
         speak_actions = [a for a in llm_response.actions if a.type == "speak"]
-        timer_actions = [a for a in llm_response.actions if a.type == "set_timer"]
-        timer_summary = f"{timer_actions[0].delay_seconds}s" if timer_actions else "None"
-        logger.info(f"[ENGINE] LLM returned {len(llm_response.actions)} action(s): speak_msg_count={len(speak_actions)}, requested_timer={timer_summary}")
+        logger.info(f"[ENGINE] LLM returned {len(llm_response.actions)} action(s): speak_msg_count={len(speak_actions)}")
 
-        # 6. Execute LLM actions
+        # 5. Execute LLM actions
         spoken_count = 0
-        timers_set_count = 0
 
         for i, action in enumerate(llm_response.actions):
             action_type = action.type
@@ -103,35 +93,16 @@ async def process_event(
                 spoken_count += 1
                 logger.info(f"[ACTION:SPEAK] Saved assistant message to session {session_id}: '{action.content[:60]}...'")
 
-            elif action_type == "set_timer":
-                # Strict Invariant: At most 1 pending timer per session
-                await crud.cancel_pending_tasks_for_session(db, session_id)
-                execute_at = now + timedelta(seconds=action.delay_seconds)
-                task = await crud.create_scheduled_task(
-                    db=db,
-                    session_id=session_id,
-                    execute_at=execute_at,
-                )
-                timers_set_count = 1
-                logger.info(f"[ACTION:SET_TIMER] LLM requested wake-up timer for session {session_id} in {action.delay_seconds}s (execute_at: {execute_at.strftime('%H:%M:%S UTC')}, Task ID: {task.id})")
+        # 6. Always schedule default in-memory wake-up / re-ping timer (30s)
+        timer_manager.schedule_re_ping(session_id, delay=DEFAULT_WAKEUP_TIMER_SECONDS)
+        logger.info(f"[DEFAULT_TIMER] Scheduled default {DEFAULT_WAKEUP_TIMER_SECONDS}s re-ping in-memory timer for session {session_id}")
 
-        # 7. Default wake-up timer fallback if no timer was explicitly set by LLM
-        if timers_set_count == 0:
-            await crud.cancel_pending_tasks_for_session(db, session_id)
-            execute_at = now + timedelta(seconds=DEFAULT_WAKEUP_TIMER_SECONDS)
-            task = await crud.create_scheduled_task(
-                db=db,
-                session_id=session_id,
-                execute_at=execute_at,
-            )
-            timers_set_count = 1
-            logger.info(f"[DEFAULT_TIMER] Scheduled default {DEFAULT_WAKEUP_TIMER_SECONDS}s wake-up timer for session {session_id} (execute_at: {execute_at.strftime('%H:%M:%S UTC')}, Task ID: {task.id})")
-
-        logger.info(f"[ENGINE] Completed event cycle for session {session_id}: spoken={spoken_count}, timers_set={timers_set_count}")
+        logger.info(f"[ENGINE] Completed event cycle for session {session_id}: spoken={spoken_count}, timers_set=1")
 
         return {
             "status": "success",
             "spoken": spoken_count,
-            "timers_set": timers_set_count,
+            "timers_set": 1,
         }
+
 

@@ -9,7 +9,8 @@ from app.api.routes import router as api_router
 from app.core.config import settings
 from app.db.init_db import init_db
 from app.db.session import async_session_factory
-from app.scheduler.worker import TaskSchedulerWorker
+from app.scheduler.manager import timer_manager
+from app.api.routes import trigger_re_ping
 
 logging.basicConfig(
     level=settings.LOG_LEVEL.upper(),
@@ -26,7 +27,6 @@ logging.getLogger("aiosqlite").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
-scheduler_worker = TaskSchedulerWorker(session_factory=async_session_factory)
 STATIC_DIR = Path(__file__).parent / "static"
 
 
@@ -37,13 +37,12 @@ async def lifespan(app: FastAPI):
     logger.info(f"Loaded config - Database: {settings.DATABASE_URL}, Model: {settings.OPENAI_MODEL}, BaseURL: {settings.OPENAI_BASE_URL or 'default (OpenAI)'}")
     logger.info("Initializing database tables...")
     await init_db()
-    logger.info("Starting task scheduler background worker...")
-    scheduler_worker.start()
+    logger.info("Registering in-memory re-ping trigger callback...")
+    timer_manager.register_trigger_fn(trigger_re_ping)
     yield
     # Shutdown
-    logger.info("Stopping task scheduler background worker...")
-    await scheduler_worker.stop()
     logger.info("Application shutdown complete.")
+
 
 
 app = FastAPI(

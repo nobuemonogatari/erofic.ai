@@ -32,12 +32,17 @@ class TaskSchedulerWorker:
                 logger.info(f"[SCHEDULER] Found {len(due_tasks)} pending task(s) due at or before {now.strftime('%H:%M:%S UTC')}")
 
             for task in due_tasks:
-                # IDEMPOTENCY: Mark completed BEFORE executing trigger
-                logger.info(f"[SCHEDULER] Marking task {task.id} (Session {task.session_id}) as COMPLETED")
-                await crud.mark_task_status(db, task.id, TaskStatus.COMPLETED)
+                # ATOMIC CLAIM: Attempt to transition PENDING -> EXECUTING
+                claimed = await crud.claim_pending_task(db, task.id)
+                if not claimed:
+                    logger.info(f"[SCHEDULER] Task {task.id} (Session {task.session_id}) was already claimed or cancelled. Skipping.")
+                    continue
+
+                logger.info(f"[SCHEDULER] Atomically claimed task {task.id} (Session {task.session_id}) as EXECUTING")
                 try:
                     logger.info(f"[SCHEDULER] Triggering process_event for task {task.id} (Session {task.session_id})...")
                     await process_event(db, task.session_id, trigger_type="scheduled_action")
+                    await crud.mark_task_status(db, task.id, TaskStatus.COMPLETED)
                     processed_count += 1
                 except Exception as e:
                     logger.error(f"[SCHEDULER] Error executing scheduled task {task.id}: {e}")

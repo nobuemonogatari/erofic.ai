@@ -73,31 +73,26 @@ async def process_event(
                 "timers_set": 1,
             }
 
-        logger.info(f"[ENGINE] LLM returned {len(llm_response)} sequential message(s)")
+        logger.info(f"[ENGINE] LLM returned response: '{llm_response[:60]}...'")
 
         # 5. Execute LLM actions
-        spoken_count = 0
-        for i, content in enumerate(llm_response):
-            msg_time = now + timedelta(milliseconds=i * 50)
-            await crud.create_message(
-                db=db,
-                session_id=session_id,
-                role=MessageRole.ASSISTANT,
-                content=content,
-                timestamp=msg_time,
-            )
-            spoken_count += 1
-            logger.info(f"[ACTION:SPEAK] Saved assistant message to session {session_id}: '{content[:60]}...'")
+        await crud.create_message(
+            db=db,
+            session_id=session_id,
+            role=MessageRole.ASSISTANT,
+            content=llm_response,
+            timestamp=now,
+        )
 
         # 6. Always schedule default in-memory wake-up / re-ping timer (30s)
         timer_manager.schedule_re_ping(session_id, delay=DEFAULT_WAKEUP_TIMER_SECONDS)
         logger.info(f"[DEFAULT_TIMER] Scheduled default {DEFAULT_WAKEUP_TIMER_SECONDS}s re-ping in-memory timer for session {session_id}")
 
-        logger.info(f"[ENGINE] Completed event cycle for session {session_id}: spoken={spoken_count}, timers_set=1")
+        logger.info(f"[ENGINE] Completed event cycle for session {session_id}: spoken=1, timers_set=1")
 
         return {
             "status": "success",
-            "spoken": spoken_count,
+            "spoken": 1,
             "timers_set": 1,
         }
 

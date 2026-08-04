@@ -29,46 +29,23 @@ def build_llm_messages(
     now = current_time or datetime.now(timezone.utc)
     llm_payload: list[dict[str, str]] = []
 
-    # 1. Unified static system prompt at index 0
-    system_parts = []
-    if system_prompt:
-        system_parts.append(f"# Persona & Instructions\n{system_prompt}")
-    system_parts.append(f"# Response Rules & Guidelines\n{system_instruction}")
-    unified_system_content = "\n\n".join(system_parts)
-    llm_payload.append({"role": "system", "content": unified_system_content})
-
-    # 2. Sliding window of recent messages
+    # 1. Sliding window of recent messages
     recent_messages = list(messages)[-max_history:] if len(messages) > max_history else list(messages)
 
-    # 3. Append chat history
+    # 2. Inject user system_prompt as conversational guidelines
+    persona_text = ""
+    if system_prompt:
+        persona_text = f"3. {system_prompt.strip()}"
+
+    # 3. Format dynamic rules template into guidelines block
+    unified_system_content = system_instruction.format(persona_guidelines=persona_text).strip()
+    llm_payload.append({"role": "system", "content": unified_system_content})
+
+    # 4. Append chat history (without trailing pings)
     for msg in recent_messages:
         llm_payload.append({
             "role": msg.role.value if hasattr(msg.role, "value") else str(msg.role),
             "content": msg.content,
         })
-
-    # 4. Calculate relative elapsed time
-    elapsed_val = "30 seconds"
-    if recent_messages:
-        last_msg = recent_messages[-1]
-        last_ts = last_msg.timestamp
-        if last_ts.tzinfo is None:
-            last_ts = last_ts.replace(tzinfo=timezone.utc)
-        elapsed_seconds = max(0.0, (now - last_ts).total_seconds())
-        elapsed_val = format_time_elapsed(elapsed_seconds)
-
-    # 5. Append consolidated Event Context at the very end
-    if trigger_type == "scheduled_action":
-        end_event_notice = (
-            f"SYSTEM EVENT [AUTONOMOUS_RE_PING]: {elapsed_val} have elapsed since your last action. "
-            "The user has not replied. Decide if you want to follow up or remain silent (return an empty actions list)."
-        )
-    else:
-        end_event_notice = (
-            f"SYSTEM EVENT [USER_INPUT]: The user sent a new message {elapsed_val} ago. "
-            "Respond ONLY to the user's latest input."
-        )
-
-    llm_payload.append({"role": "system", "content": end_event_notice})
 
     return llm_payload

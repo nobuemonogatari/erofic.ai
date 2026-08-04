@@ -62,7 +62,7 @@ async def test_sessions_and_messages_endpoints(async_client: AsyncClient):
         with patch(
             "app.engine.processor.LLMClient.generate_actions",
             new_callable=AsyncMock,
-            return_value=["Bot reply via API"],
+            return_value="Bot reply via API",
         ):
             msg_res = await async_client.post(
                 f"/sessions/{session_id}/message", json={"content": "Hello bot!"}

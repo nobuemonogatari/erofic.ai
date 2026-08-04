@@ -1,10 +1,9 @@
 import json
 import logging
 from openai import AsyncOpenAI
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from app.core.config import settings
-from app.engine.schema import LLMActionResponse
 
 logger = logging.getLogger(__name__)
 
@@ -15,20 +14,42 @@ class LLMGenerationError(Exception):
     pass
 
 
+class LLMResponse(BaseModel):
+    messages: list[str]
+
+
 SYSTEM_JSON_INSTRUCTION = (
+    "SPEAKER IDENTIFICATION & DIALOGUE RULES:\n"
+    "- Messages with role 'user' are spoken by the HUMAN USER.\n"
+    "- Messages with role 'assistant' are spoken by YOU (the assistant).\n"
+    "- Messages with role 'system' are environment or timer notifications.\n"
+    "- CRITICAL RULE: NEVER reply to or answer your own previous 'assistant' messages. Only respond to the latest 'user' input or system context.\n\n"
     "You must respond with valid JSON matching the following schema:\n"
     "{\n"
-    '  "actions": [\n'
-    '    {"type": "speak", "content": "first short message"},\n'
-    '    {"type": "speak", "content": "second follow-up text"}\n'
-    "  ]\n"
-    "}\n"
+    '  "messages": [\n'
+    '    "first short message",\n'
+    '    "second follow-up text"\n'
+    '  ]\n'
+    "}\n\n"
     "Guidelines:\n"
-    "- You can include multiple sequential 'speak' actions to send multiple short, natural human-like text messages.\n"
-    "- Return plain text in speak content without HTML/XML tags.\n"
-    "- Conversation Continuity: Check the chat history carefully. Never repeat, summarize, or re-generate statements you already sent to the user. Advance the conversation forward."
+    "- Return a list of natural, conversational strings under the 'messages' key.\n"
+    "- Do not prefix your response with roles or headers (e.g., do NOT write 'assistant: hello'). Strictly output only the message content strings.\n"
+    "- Do not output HTML, XML, or markdown tags in message content.\n"
+    "- Conversation Continuity: Check the chat history carefully. Never repeat, summarize, or re-generate statements you already sent to the user. Advance the conversation forward.\n\n"
+    "EXAMPLES:\n"
+    "Example 1 (Replying to user message):\n"
+    "{\n"
+    '  "messages": [\n'
+    '    "Hi there! How can I help you today?"\n'
+    '  ]\n'
+    "}\n\n"
+    "Example 2 (Timer expired - sending a follow-up or check-in):\n"
+    "{\n"
+    '  "messages": [\n'
+    '    "Just wanted to check in. Let me know if you need anything else!"\n'
+    '  ]\n'
+    "}"
 )
-
 
 
 class LLMClient:
@@ -52,15 +73,11 @@ class LLMClient:
 
     async def generate_actions(
         self, messages: list[dict[str, str]]
-    ) -> LLMActionResponse:
+    ) -> list[str]:
         payload_messages = messages
 
         endpoint_info = f"base_url={self.base_url}" if self.base_url else "default OpenAI endpoint"
         logger.info(f"[LLM] Requesting completion from model '{self.model}' ({endpoint_info}) with {len(payload_messages)} messages (timeout={self.timeout}s)")
-
-        # Detailed debug log of exact payload sent to LLM
-        formatted_payload = json.dumps(payload_messages, indent=2, ensure_ascii=False)
-        logger.debug(f"[LLM:PAYLOAD] === SENT TO LLM ===\n{formatted_payload}\n========================")
 
         try:
             response = await self.client.chat.completions.create(
@@ -76,10 +93,9 @@ class LLMClient:
             logger.debug(f"[LLM:RESPONSE] === RECEIVED FROM LLM ===\n{raw_content}\n===========================")
 
             parsed_json = json.loads(raw_content)
-            action_response = LLMActionResponse.model_validate(parsed_json)
-            speak_count = len(action_response.actions)
-            logger.info(f"[LLM] Parsed {speak_count} action(s) from LLM (speak_msg_count={speak_count})")
-            return action_response
+            validated = LLMResponse.model_validate(parsed_json)
+            logger.info(f"[LLM] Parsed {len(validated.messages)} sequential message(s) from JSON.")
+            return validated.messages
 
         except ValidationError as e:
             logger.error(f"[LLM] Schema validation failed for response: {e}")
@@ -92,4 +108,3 @@ class LLMClient:
         except Exception as e:
             logger.error(f"[LLM] API communication failure: {type(e).__name__}: {e}")
             raise LLMGenerationError(f"API communication failure: {e}") from e
-

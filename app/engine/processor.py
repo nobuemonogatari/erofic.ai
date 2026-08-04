@@ -73,25 +73,21 @@ async def process_event(
                 "timers_set": 1,
             }
 
-        speak_actions = [a for a in llm_response.actions if a.type == "speak"]
-        logger.info(f"[ENGINE] LLM returned {len(llm_response.actions)} action(s): speak_msg_count={len(speak_actions)}")
+        logger.info(f"[ENGINE] LLM returned {len(llm_response)} sequential message(s)")
 
         # 5. Execute LLM actions
         spoken_count = 0
-
-        for i, action in enumerate(llm_response.actions):
-            action_type = action.type
-            if action_type == "speak":
-                msg_time = now + timedelta(milliseconds=i * 50)
-                await crud.create_message(
-                    db=db,
-                    session_id=session_id,
-                    role=MessageRole.ASSISTANT,
-                    content=action.content,
-                    timestamp=msg_time,
-                )
-                spoken_count += 1
-                logger.info(f"[ACTION:SPEAK] Saved assistant message to session {session_id}: '{action.content[:60]}...'")
+        for i, content in enumerate(llm_response):
+            msg_time = now + timedelta(milliseconds=i * 50)
+            await crud.create_message(
+                db=db,
+                session_id=session_id,
+                role=MessageRole.ASSISTANT,
+                content=content,
+                timestamp=msg_time,
+            )
+            spoken_count += 1
+            logger.info(f"[ACTION:SPEAK] Saved assistant message to session {session_id}: '{content[:60]}...'")
 
         # 6. Always schedule default in-memory wake-up / re-ping timer (30s)
         timer_manager.schedule_re_ping(session_id, delay=DEFAULT_WAKEUP_TIMER_SECONDS)

@@ -8,7 +8,6 @@ from app.db.base import Base
 from app.db import crud
 from app.engine.llm import LLMClient
 from app.engine.processor import process_event
-from app.engine.schema import LLMActionResponse, SpeakAction
 from app.models import MessageRole
 
 
@@ -26,31 +25,17 @@ async def test_db():
 
 
 @pytest.mark.asyncio
-async def test_llm_schema_validation():
-    valid_json = {
-        "actions": [
-            {"type": "speak", "content": "Instant reply"},
-        ]
-    }
-    resp = LLMActionResponse.model_validate(valid_json)
-    assert len(resp.actions) == 1
-    assert isinstance(resp.actions[0], SpeakAction)
-
-
-@pytest.mark.asyncio
 async def test_multiple_sequential_speak_actions(test_db: AsyncSession):
     session = await crud.create_session(test_db, system_prompt="Test Prompt")
     await crud.create_message(test_db, session.id, MessageRole.USER, "Tell me a story in parts.")
 
     mock_llm = LLMClient()
     mock_llm.generate_actions = AsyncMock(
-        return_value=LLMActionResponse(
-            actions=[
-                SpeakAction(content="Part 1: Once upon a time..."),
-                SpeakAction(content="Part 2: There was a coder..."),
-                SpeakAction(content="Part 3: Who built great AI systems."),
-            ]
-        )
+        return_value=[
+            "Part 1: Once upon a time...",
+            "Part 2: There was a coder...",
+            "Part 3: Who built great AI systems.",
+        ]
     )
 
     with patch("app.engine.processor.timer_manager.schedule_re_ping") as mock_schedule:
@@ -73,9 +58,7 @@ async def test_default_30s_wakeup_timer_fallback(test_db: AsyncSession):
 
     mock_llm = LLMClient()
     mock_llm.generate_actions = AsyncMock(
-        return_value=LLMActionResponse(
-            actions=[SpeakAction(content="Hello!")]
-        )
+        return_value=["Hello!"]
     )
 
     with patch("app.engine.processor.timer_manager.schedule_re_ping") as mock_schedule:

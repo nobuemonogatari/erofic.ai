@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 
 from app.db.base import Base
 from app.db.session import get_async_session
-from app.engine.schema import LLMActionResponse, SpeakAction
 from app.main import app
 
 
@@ -63,9 +62,7 @@ async def test_sessions_and_messages_endpoints(async_client: AsyncClient):
         with patch(
             "app.engine.processor.LLMClient.generate_actions",
             new_callable=AsyncMock,
-            return_value=LLMActionResponse(
-                actions=[SpeakAction(content="Bot reply via API")]
-            ),
+            return_value=["Bot reply via API"],
         ):
             msg_res = await async_client.post(
                 f"/sessions/{session_id}/message", json={"content": "Hello bot!"}
@@ -84,4 +81,3 @@ async def test_sessions_and_messages_endpoints(async_client: AsyncClient):
     assert messages[0]["content"] == "Hello bot!"
     assert messages[1]["role"] == "assistant"
     assert messages[1]["content"] == "Bot reply via API"
-

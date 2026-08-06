@@ -92,12 +92,12 @@ class LLMClient:
         self.client = AsyncOpenAI(**kwargs)
 
     async def generate_actions(
-        self, messages: list[dict[str, str]]
+        self, messages: list[dict[str, str]], temperature: float = 0.7
     ) -> str:
         payload_messages = messages
 
         endpoint_info = f"base_url={self.base_url}" if self.base_url else "default OpenAI endpoint"
-        logger.info(f"[LLM] Requesting completion from model '{self.model}' ({endpoint_info}) with {len(payload_messages)} messages (timeout={self.timeout}s)")
+        logger.info(f"[LLM] Requesting completion from model '{self.model}' ({endpoint_info}) with {len(payload_messages)} messages (temp={temperature}, timeout={self.timeout}s)")
 
         try:
             # First try with Strict JSON Schema mode
@@ -123,7 +123,7 @@ class LLMClient:
                             }
                         }
                     },
-                    temperature=0.7,
+                    temperature=temperature,
                     timeout=self.timeout,
                 )
             except Exception as schema_err:
@@ -132,7 +132,7 @@ class LLMClient:
                     model=self.model,
                     messages=payload_messages,  # type: ignore
                     response_format={"type": "json_object"},
-                    temperature=0.7,
+                    temperature=temperature,
                     timeout=self.timeout,
                 )
 

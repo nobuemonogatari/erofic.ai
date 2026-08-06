@@ -37,8 +37,13 @@ async def lifespan(app: FastAPI):
     logger.info(f"Loaded config - Database: {settings.DATABASE_URL}, Model: {settings.OPENAI_MODEL}, BaseURL: {settings.OPENAI_BASE_URL or 'default (OpenAI)'}")
     logger.info("Initializing database tables...")
     await init_db()
+    logger.info("Running database seed check...")
+    async with async_session_factory() as seed_session:
+        from app.db.seed import seed_database
+        await seed_database(seed_session)
     logger.info("Registering in-memory re-ping trigger callback...")
     timer_manager.register_trigger_fn(trigger_re_ping)
+
     yield
     # Shutdown
     logger.info("Application shutdown complete.")

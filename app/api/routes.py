@@ -7,6 +7,22 @@ from app.api.schemas import (
     MessageResponse,
     SessionCreateRequest,
     SessionResponse,
+    CharacterCreateRequest,
+    CharacterUpdateRequest,
+    CharacterResponse,
+    SettingCreateRequest,
+    SettingUpdateRequest,
+    SettingResponse,
+    RelationshipCreateRequest,
+    RelationshipUpdateRequest,
+    RelationshipResponse,
+    StylePresetCreateRequest,
+    StylePresetUpdateRequest,
+    StylePresetResponse,
+    SceneConfigCreateRequest,
+    SceneConfigUpdateRequest,
+    SceneConfigResponse,
+    PrePackagedScenarioResponse,
 )
 from app.db import crud
 from app.db.session import async_session_factory, get_async_session
@@ -27,6 +43,7 @@ async def run_async_event_processor(session_id: str):
             logger.error(f"[BACKGROUND_TASK] Error executing event processor for session {session_id}: {e}")
 
 
+# --- Existing Session & Message Endpoints ---
 @router.post("/sessions", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_session_endpoint(
     req: SessionCreateRequest,
@@ -62,7 +79,6 @@ async def send_message_endpoint(
 
     logger.info(f"[API] Received message for session {session_id}: '{req.content[:60]}...'")
 
-    # 1. Save user message to database immediately
     user_msg = await crud.create_message(
         db=db,
         session_id=session_id,
@@ -70,11 +86,9 @@ async def send_message_endpoint(
         content=req.content,
     )
 
-    # 2. Dispatch event processor asynchronously in non-blocking background task
     logger.info(f"[API] Dispatched non-blocking background event processor task for session {session_id}")
     background_tasks.add_task(run_async_event_processor, session_id)
 
-    # 3. Immediately return response without waiting for LLM completion
     return user_msg
 
 
@@ -93,6 +107,308 @@ async def get_messages_endpoint(
     messages = await crud.get_messages_for_session(db, session_id)
     logger.debug(f"[API] Fetched {len(messages)} message(s) for session {session_id}")
     return messages
+
+
+# --- 1. Character Profiles CRUD Endpoints ---
+@router.post("/api/characters", response_model=CharacterResponse, status_code=status.HTTP_201_CREATED)
+async def create_character_endpoint(
+    req: CharacterCreateRequest,
+    db: AsyncSession = Depends(get_async_session),
+):
+    return await crud.create_character(
+        db=db,
+        name=req.name,
+        appearance=req.appearance,
+        personality_and_voice=req.personality_and_voice,
+        desires_and_dynamics=req.desires_and_dynamics,
+        is_custom=req.is_custom,
+    )
+
+
+@router.get("/api/characters", response_model=list[CharacterResponse])
+async def list_characters_endpoint(
+    db: AsyncSession = Depends(get_async_session),
+):
+    return await crud.list_characters(db)
+
+
+@router.get("/api/characters/{character_id}", response_model=CharacterResponse)
+async def get_character_endpoint(
+    character_id: str,
+    db: AsyncSession = Depends(get_async_session),
+):
+    char = await crud.get_character(db, character_id)
+    if not char:
+        raise HTTPException(status_code=404, detail="Character profile not found")
+    return char
+
+
+@router.put("/api/characters/{character_id}", response_model=CharacterResponse)
+async def update_character_endpoint(
+    character_id: str,
+    req: CharacterUpdateRequest,
+    db: AsyncSession = Depends(get_async_session),
+):
+    char = await crud.update_character(db, character_id, **req.model_dump(exclude_unset=True))
+    if not char:
+        raise HTTPException(status_code=404, detail="Character profile not found")
+    return char
+
+
+@router.delete("/api/characters/{character_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_character_endpoint(
+    character_id: str,
+    db: AsyncSession = Depends(get_async_session),
+):
+    success = await crud.delete_character(db, character_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Character profile not found")
+
+
+# --- 2. Setting Presets CRUD Endpoints ---
+@router.post("/api/settings", response_model=SettingResponse, status_code=status.HTTP_201_CREATED)
+async def create_setting_endpoint(
+    req: SettingCreateRequest,
+    db: AsyncSession = Depends(get_async_session),
+):
+    return await crud.create_setting(
+        db=db,
+        title=req.title,
+        location_description=req.location_description,
+        sensory_details=req.sensory_details,
+        mood_tags=req.mood_tags,
+        is_custom=req.is_custom,
+    )
+
+
+@router.get("/api/settings", response_model=list[SettingResponse])
+async def list_settings_endpoint(
+    db: AsyncSession = Depends(get_async_session),
+):
+    return await crud.list_settings(db)
+
+
+@router.get("/api/settings/{setting_id}", response_model=SettingResponse)
+async def get_setting_endpoint(
+    setting_id: str,
+    db: AsyncSession = Depends(get_async_session),
+):
+    setting = await crud.get_setting(db, setting_id)
+    if not setting:
+        raise HTTPException(status_code=404, detail="Setting preset not found")
+    return setting
+
+
+@router.put("/api/settings/{setting_id}", response_model=SettingResponse)
+async def update_setting_endpoint(
+    setting_id: str,
+    req: SettingUpdateRequest,
+    db: AsyncSession = Depends(get_async_session),
+):
+    setting = await crud.update_setting(db, setting_id, **req.model_dump(exclude_unset=True))
+    if not setting:
+        raise HTTPException(status_code=404, detail="Setting preset not found")
+    return setting
+
+
+@router.delete("/api/settings/{setting_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_setting_endpoint(
+    setting_id: str,
+    db: AsyncSession = Depends(get_async_session),
+):
+    success = await crud.delete_setting(db, setting_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Setting preset not found")
+
+
+# --- 3. Relationship Dynamics CRUD Endpoints ---
+@router.post("/api/relationships", response_model=RelationshipResponse, status_code=status.HTTP_201_CREATED)
+async def create_relationship_endpoint(
+    req: RelationshipCreateRequest,
+    db: AsyncSession = Depends(get_async_session),
+):
+    return await crud.create_relationship(
+        db=db,
+        name=req.name,
+        history_description=req.history_description,
+        power_dynamic=req.power_dynamic,
+        current_tension=req.current_tension,
+        is_custom=req.is_custom,
+    )
+
+
+@router.get("/api/relationships", response_model=list[RelationshipResponse])
+async def list_relationships_endpoint(
+    db: AsyncSession = Depends(get_async_session),
+):
+    return await crud.list_relationships(db)
+
+
+@router.get("/api/relationships/{relationship_id}", response_model=RelationshipResponse)
+async def get_relationship_endpoint(
+    relationship_id: str,
+    db: AsyncSession = Depends(get_async_session),
+):
+    rel = await crud.get_relationship(db, relationship_id)
+    if not rel:
+        raise HTTPException(status_code=404, detail="Relationship dynamic not found")
+    return rel
+
+
+@router.put("/api/relationships/{relationship_id}", response_model=RelationshipResponse)
+async def update_relationship_endpoint(
+    relationship_id: str,
+    req: RelationshipUpdateRequest,
+    db: AsyncSession = Depends(get_async_session),
+):
+    rel = await crud.update_relationship(db, relationship_id, **req.model_dump(exclude_unset=True))
+    if not rel:
+        raise HTTPException(status_code=404, detail="Relationship dynamic not found")
+    return rel
+
+
+@router.delete("/api/relationships/{relationship_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_relationship_endpoint(
+    relationship_id: str,
+    db: AsyncSession = Depends(get_async_session),
+):
+    success = await crud.delete_relationship(db, relationship_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Relationship dynamic not found")
+
+
+# --- 4. Style & Tone Presets CRUD Endpoints ---
+@router.post("/api/styles", response_model=StylePresetResponse, status_code=status.HTTP_201_CREATED)
+async def create_style_endpoint(
+    req: StylePresetCreateRequest,
+    db: AsyncSession = Depends(get_async_session),
+):
+    return await crud.create_style_preset(
+        db=db,
+        name=req.name,
+        pacing=req.pacing,
+        sensory_focus=req.sensory_focus,
+        phase_1_prompt=req.phase_1_prompt,
+        phase_2_prompt=req.phase_2_prompt,
+        phase_3_prompt=req.phase_3_prompt,
+        is_custom=req.is_custom,
+    )
+
+
+@router.get("/api/styles", response_model=list[StylePresetResponse])
+async def list_styles_endpoint(
+    db: AsyncSession = Depends(get_async_session),
+):
+    return await crud.list_style_presets(db)
+
+
+@router.get("/api/styles/{style_id}", response_model=StylePresetResponse)
+async def get_style_endpoint(
+    style_id: str,
+    db: AsyncSession = Depends(get_async_session),
+):
+    style = await crud.get_style_preset(db, style_id)
+    if not style:
+        raise HTTPException(status_code=404, detail="Style preset not found")
+    return style
+
+
+@router.put("/api/styles/{style_id}", response_model=StylePresetResponse)
+async def update_style_endpoint(
+    style_id: str,
+    req: StylePresetUpdateRequest,
+    db: AsyncSession = Depends(get_async_session),
+):
+    style = await crud.update_style_preset(db, style_id, **req.model_dump(exclude_unset=True))
+    if not style:
+        raise HTTPException(status_code=404, detail="Style preset not found")
+    return style
+
+
+@router.delete("/api/styles/{style_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_style_endpoint(
+    style_id: str,
+    db: AsyncSession = Depends(get_async_session),
+):
+    success = await crud.delete_style_preset(db, style_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Style preset not found")
+
+
+# --- 5. Scene Configurations & Scenarios Endpoints ---
+@router.post("/api/scenes", response_model=SceneConfigResponse, status_code=status.HTTP_201_CREATED)
+async def create_scene_endpoint(
+    req: SceneConfigCreateRequest,
+    db: AsyncSession = Depends(get_async_session),
+):
+    return await crud.create_scene_config(
+        db=db,
+        title=req.title,
+        session_id=req.session_id,
+        setting_id=req.setting_id,
+        relationship_id=req.relationship_id,
+        style_id=req.style_id,
+        user_pov_character_id=req.user_pov_character_id,
+        character_ids=req.character_ids,
+        role_assignments=req.role_assignments,
+        current_phase=req.current_phase,
+        is_custom=req.is_custom,
+    )
+
+
+
+@router.get("/api/scenes", response_model=list[SceneConfigResponse])
+async def list_scenes_endpoint(
+    db: AsyncSession = Depends(get_async_session),
+):
+    return await crud.list_scene_configs(db)
+
+
+@router.get("/api/scenarios/presets", response_model=list[PrePackagedScenarioResponse])
+async def list_prepackaged_scenarios_endpoint(
+    db: AsyncSession = Depends(get_async_session),
+):
+    # Fetch non-custom (pre-seeded) scene configs
+    all_scenes = await crud.list_scene_configs(db)
+    return [s for s in all_scenes if not s.is_custom]
+
+
+@router.get("/api/scenes/{scene_id}", response_model=SceneConfigResponse)
+async def get_scene_endpoint(
+    scene_id: str,
+    db: AsyncSession = Depends(get_async_session),
+):
+    scene = await crud.get_scene_config(db, scene_id)
+    if not scene:
+        raise HTTPException(status_code=404, detail="Scene configuration not found")
+    return scene
+
+
+@router.put("/api/scenes/{scene_id}", response_model=SceneConfigResponse)
+async def update_scene_endpoint(
+    scene_id: str,
+    req: SceneConfigUpdateRequest,
+    db: AsyncSession = Depends(get_async_session),
+):
+    scene = await crud.update_scene_config(
+        db=db,
+        scene_id=scene_id,
+        character_ids=req.character_ids,
+        **req.model_dump(exclude_unset=True, exclude={"character_ids"}),
+    )
+    if not scene:
+        raise HTTPException(status_code=404, detail="Scene configuration not found")
+    return scene
+
+
+@router.delete("/api/scenes/{scene_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_scene_endpoint(
+    scene_id: str,
+    db: AsyncSession = Depends(get_async_session),
+):
+    success = await crud.delete_scene_config(db, scene_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Scene configuration not found")
 
 
 async def trigger_re_ping(session_id: str):

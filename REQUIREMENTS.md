@@ -1,69 +1,61 @@
-# Core AI Chat Engine – V1 Requirements (Updated)
+# Erotica Fiction Engine – Functional Requirements
 
-## 1. Objective
-Build a headless, event-driven chat engine that simulates human conversational behavior. The system supports event triggers, relative time-aware context management, and structured LLM responses without relying on a persistent database-backed background loop.
+## 1. Core Vision & User Experience
+* **Book-like Immersion**: The system must feel like reading a dialogue-heavy fiction book rather than interacting with a standard AI assistant chat.
+* **Initial Genre Focus**: Erotic romance / Erotica fiction (emphasizing physical and emotional tension, intimate pacing, sensory depth, atmospheric descriptions, and seductive/witty banter).
+* **High-Capacity Context Support**: Designed to leverage larger context windows (e.g. 16k tokens) to maintain rich character depth, narrative guidelines, active scene setup, and deep story memory.
 
-## 2. Core Architecture: Event-Driven
-The engine operates on discrete events. It wakes up, executes bounded logic, and spins down.
+---
 
-**Event Triggers:**
-1.  **User Input:** The user sends a message via the API.
-2.  **Autonomous Re-Ping:** An in-memory timer elapses (30 seconds of user silence).
+## 2. Story Initialization & Reusable Scene Components
+Before a story scene begins, the user goes through an **Initialization Phase** or selects a pre-configured setup. The setup is built from modular, reusable components:
 
-**Execution Cycle (Per Trigger):**
-1. Fetch `Session` and `Message` history from SQLite.
-2. Cancel any pending in-memory re-ping timers for the session.
-3. Append time elapsed context.
-4. Call the LLM with a strict JSON schema requirement.
-5. Parse the LLM's chosen message.
-6. Save the new message and schedule a new 30-second re-ping timer.
-7. Exit.
+### 2.1 Character Profiles
+* Defines individual characters participating in the scene (appearance, personality, vocal style, speech patterns, desires, and behaviors).
+* Supports 2 characters initially, with design flexibility for solo or multi-character scenes in the future.
 
-## 3. Data Models (SQLite)
+### 2.2 Relationship Dynamics
+* Defines the relationship history, balance of power, and emotional/physical tension between the characters.
 
-### 3.1 Session
-*   `id` (UUID)
-*   `system_prompt` (Text)
-*   `created_at`, `updated_at` (Timestamp)
+### 2.3 Setting & Environment
+* Defines the scene location, sensory backdrop (lighting, temperature, scents, ambient sounds), and overall atmosphere.
 
-### 3.2 Message
-*   `id` (UUID)
-*   `session_id` (UUID, FK)
-*   `role` (Enum: `user`, `assistant`, `system`)
-*   `content` (Text)
-*   `timestamp` (Timestamp)
+### 2.4 Style & Tone Presets
+* Defines the literary flavor, ratio of dialogue to descriptive prose, pacing, and sensory focus (e.g., slow burn, witty banter, intense passion).
 
-## 4. LLM Interface & Action Schema
-To achieve autonomy, the LLM returns structured JSON containing its message.
+### 2.5 Active Scene Configuration
+* Combines selected characters, relationship dynamic, setting, and style preset into an active story session.
+* Specifies which character the user is playing as the default first-person perspective.
 
-**Required LLM Output Schema:**
-```json
-{
-  "message": "The assistant's conversational response here."
-}
-```
+---
 
-## 5. Context Management (V1)
-*   **Method:** Simple Sliding Window.
-*   **Rule:** Retain the System Prompt and JSON format rules at index 0, and append the latest messages (up to 20 messages).
-*   **Time & Event Context:** Inject a system message at the very end of the payload list stating the trigger type and time elapsed since the last message (e.g. *"SYSTEM EVENT [AUTONOMOUS_RE_PING]: 30 seconds have elapsed since your last action. The user has not replied."*).
+## 3. Pre-Loaded Library & Custom Preset Persistence
+* **Pre-Loaded Scenarios & Presets**: Ships with a library of curated characters, settings, relationships, style presets, and ready-to-play full scene templates for instant selection.
+* **Automatic Custom Recording**: Any custom character, setting, or relationship details created by the user during setup are automatically saved to their library for reuse in future scenes.
 
-## 6. API Design (FastAPI)
-*   `POST /sessions` → Create a new chat session.
-*   `GET /sessions` → Fetch all chat sessions.
-*   `POST /sessions/{id}/message` → Save user message immediately and dispatch event processor asynchronously in background (non-blocking).
-*   `GET /sessions/{id}/messages` → Fetch chat history (UI polls for new assistant messages).
+---
 
-## 7. Tech Stack
-*   **Language:** Python 3.11+
-*   **Framework:** FastAPI (REST API & orchestration)
-*   **Database:** SQLite (using SQLAlchemy Async + `aiosqlite`)
-*   **LLM Integration:** `openai` python SDK (supports OpenAI, Ollama, and any OpenAI-compatible endpoint).
-*   **Scheduling**: In-memory `asyncio` Timer Handles.
+## 4. Perspective & Character System
+* **Default Perspective**: First-Person ("I"). The user acts as their selected main character by default.
+* **Dynamic Character Switching**:
+  * Users can switch their active POV character on the fly during a scene (e.g., switching from the main character to a partner character, or back).
+  * The system adjusts narrative handling so that "I" in user inputs aligns with the currently active character.
 
-## 8. Guardrails & Safety
-*   **Default 30s Wake-Up**: The engine automatically schedules a 30-second re-ping timer after every execution cycle.
-*   **Single Timer Invariant**: At any time, at most 1 in-memory timer exists per session.
-*   **Timer Auto-Cancellation**: Any existing timer for a session is automatically cancelled whenever a new event triggers.
-*   **Recursion Limit**: The assistant cannot send more than 3 consecutive messages without user intervention to prevent infinite loops.
-*   **Fallback & Tag Sanitization**: If the LLM outputs malformed JSON or includes XML/HTML tags in content, the system safely sanitizes or catches the error and schedules a 10s recovery retry timer.
+---
+
+## 5. Structured Input Types & Slash Commands
+* Users can explicitly tag their input mode using simple UI commands or slash shortcuts:
+  * **Dialogue**: Spoken words meant to be uttered aloud.
+  * **Action**: Physical movements, gestures, or interactions.
+  * **Thought / Monologue**: Internal unspoken thoughts of the character.
+  * **Scene Setting**: Contextual descriptions of the surroundings, mood, or time shift.
+  * **World Event**: External environmental or plot events.
+* The system accepts raw user dialogue seamlessly without requiring full prose wrappers.
+
+---
+
+## 6. LLM Narrative & System Prompt Expectations
+* **Dialogue-Heavy Literary Prose**: Generates rich, evocative dialogue interwoven with sensory details, vocal beats, and body language.
+* **Standard Novel Formatting**: Uses proper quotation marks for spoken dialogue, italics for internal thoughts/emphasis, and natural paragraph breaks.
+* **Zero AI Assistant Bleed**: Completely eliminates AI helper tropes ("As an AI...", "How can I help?", meta-summaries, out-of-character comments).
+* **Contextual Responsiveness**: Correctly interprets user input categories and character perspective to produce aligned narrative responses.

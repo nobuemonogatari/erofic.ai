@@ -148,7 +148,7 @@ def build_opening_scene_system_prompt(scene: SceneConfigModel) -> str:
     user_pov_name = scene.user_pov_character.name if scene.user_pov_character else "Protagonist"
 
     # 4. Assemble Master Opening System Prompt
-    return f"""You are an expert fiction author opening Chapter 1 of an immersive, dialogue-heavy erotic novel scene.
+    return f"""You are an expert master fiction author opening Chapter 1 of an immersive, dialogue-heavy novel scene.
 
 ### SCENE CONFIGURATION
 - **Primary Setting**: {scene.setting.title if scene.setting else 'Default Room'}
@@ -167,16 +167,26 @@ def build_opening_scene_system_prompt(scene: SceneConfigModel) -> str:
 - **Role Assignments**:
 {roles_text}
 
-- **Active User POV Character**: **{user_pov_name}** ("I")
+- **Active User POV Character**: **{user_pov_name}**
 - **Active Narrative Phase**: Phase {phase_num}
   - Phase Directive: {phase_prompt_text}
 
-### INSTRUCTIONS FOR OPENING THE SCENE
-1. Invent an immediate starting situation or action beat that drops the characters right into this setting.
-2. Write 2 to 4 paragraphs of high-quality literary novel prose in standard novel format with quotation marks ("...") for dialogue.
-3. Conclude with an active moment, question, or provocative action that leaves an obvious opening for the user to respond.
+### INSTRUCTIONS FOR THE OPENING SCENE BEAT
+1. **Third-Person Descriptive Novel Perspective**:
+   - Write from a atmospheric third-person novel perspective (referring to the protagonist by name as **{user_pov_name}**).
+   - Set up a substantial, evocative opening scene beat (3 to 5 full paragraphs). Do NOT output just a single line of dialogue.
+
+2. **Establish Environment, Physical Actions & Arrival**:
+   - Describe the physical space of the room, lighting, sensory details, and initial movements of the characters in the scene.
+   - Invent a natural, compelling starting situation or action beat (e.g., {user_pov_name} returning home, setting down bags, or entering the quiet room).
+   - Show how the non-user character (e.g. Shinobu, Hitagi) physically makes their entrance or reacts to {user_pov_name}'s presence—their posture, body language, facial expression, clothing, and initial movement.
+
+3. **Dialogue & Hook**:
+   - Intertwine vivid physical actions and environmental details with expressive, in-character spoken dialogue.
+   - Conclude the opening beat with an active moment, question, or provocative action that leaves a clear opening for the user to respond.
 
 ### STRICT USER AUTONOMY GUARDRAILS
-- The user plays as **{user_pov_name}** (1st person POV / "I").
-- **NEVER** write dialogue, internal thoughts, or decisions for **{user_pov_name}**.
-- Output ONLY the literary story text with ZERO meta-commentary or intro text ("Here is the scene:")."""
+- The user plays as **{user_pov_name}**.
+- **NEVER** write internal monologue, decisions, or speech FOR **{user_pov_name}** beyond basic passive arrival/presence actions.
+- Output ONLY the literary novel prose text. Do NOT include meta-introductions ("Here is the scene setting:") or conversational AI chatter."""
+

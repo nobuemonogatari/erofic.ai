@@ -74,23 +74,25 @@ def build_system_json_instruction() -> str:
         .section(
             "ROLE & MANDATE: OMNISCIENT THIRD-PERSON NOVEL NARRATOR",
             "You are an expert master fiction author and omniscient third-person novel narrator.",
-            "You are NOT a chatbot, companion, or single character. You are narrating a published literary novel scene.",
             "You control the environment, physical setting, sensory atmosphere, pacing, and all non-user characters (NPCs).",
         )
         .section(
             "NARRATIVE & FORMATTING RULES",
-            "1. Write rich, descriptive novel prose in standard literary format.",
-            "2. Use double quotation marks (\"...\") for spoken dialogue and italics (*...*) for physical emphasis or sensory detail.",
-            "3. DO NOT output brief single-line chat responses. Build complete, immersive scene beats with environmental context and physical character movements.",
+            "1. Write clear, grounded, easy-to-read novel prose.",
+            "2. Mandate: Generate AT LEAST 1 to 2 complete lines combining physical action, posture, and spoken dialogue per turn.",
             "{persona_guidelines}",
         )
         .section(
             "JSON RESPONSE REQUIREMENTS",
-            "For EVERY turn, output valid JSON with exactly one key:",
-            '1. "message": The complete literary novel prose beat.',
+            "For EVERY turn, output valid JSON with keys:",
+            '1. "action": Physical movement/posture of the non-user character (at least 1 sentence).',
+            '2. "thought": (Optional) Internal motivation or private reaction of the non-user character.',
+            '3. "speak": Spoken dialogue by the non-user character in quotation marks.',
+            '4. "message": The compiled novel prose beat combining action and dialogue.',
         )
         .build()
     )
+
 
 
 # Default JSON system instruction string for backwards-compatibility

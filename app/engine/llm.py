@@ -16,6 +16,9 @@ class LLMGenerationError(Exception):
 
 class LLMResponse(BaseModel):
     message: str
+    action: str | None = None
+    thought: str | None = None
+    speak: str | None = None
 
 
 from app.engine.prompts import (
@@ -25,9 +28,8 @@ from app.engine.prompts import (
 )
 
 
-
 def extract_json_from_text(raw_text: str) -> dict[str, str]:
-    """Extracts and parses JSON dictionary from raw LLM output text, handling markdown codeblocks and text wrappers."""
+    """Extracts and parses JSON dictionary from raw LLM output text, handling action/thought/speak schema and fallback auto-closure."""
     text = raw_text.strip()
     if not text:
         return {"message": ""}
@@ -55,21 +57,44 @@ def extract_json_from_text(raw_text: str) -> dict[str, str]:
                 inner = inner[3:]
             text = inner.strip()
 
-    # Find first '{' and last '}'
+    # Find first '{' and try to find matching or last '}'
     first_brace = text.find("{")
     last_brace = text.rfind("}")
-    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
-        text = text[first_brace:last_brace + 1]
+    if first_brace != -1:
+        if last_brace != -1 and last_brace > first_brace:
+            text = text[first_brace:last_brace + 1]
+        else:
+            text = text[first_brace:] + '"}'
 
     try:
         data = json.loads(text)
         if isinstance(data, dict):
             msg = str(data.get("message", "")).strip()
-            return {"message": msg}
+            action = str(data.get("action", "")).strip() if data.get("action") else ""
+            thought = str(data.get("thought", "")).strip() if data.get("thought") else ""
+            speak = str(data.get("speak", "")).strip() if data.get("speak") else ""
+
+            # If message is empty but action/speak exist, assemble compiled prose
+            if not msg and (action or speak):
+                parts = []
+                if action:
+                    parts.append(f"*{action}*")
+                if speak:
+                    speak_clean = speak.strip('"')
+                    parts.append(f'"{speak_clean}"')
+                msg = "\n\n".join(parts)
+
+            return {
+                "message": msg,
+                "action": action,
+                "thought": thought,
+                "speak": speak,
+            }
         return {"message": text}
     except json.JSONDecodeError:
         # Fail-Safe plain text fallback: wrap clean text directly
         return {"message": text.strip()}
+
 
 
 class LLMClient:

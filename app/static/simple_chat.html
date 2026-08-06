@@ -365,12 +365,23 @@
         </div>
       </div>
 
-      <div class="chat-input-bar">
-        <input type="text" id="userInput" placeholder="Type a message..." onkeypress="handleKeyPress(event)" disabled>
-        <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+      <div style="position:relative;">
+        <div id="cmdMenu" style="display:none; position:absolute; bottom:100%; left:1.5rem; background:rgba(15,23,42,0.95); border:1px solid rgba(99,102,241,0.5); border-radius:0.5rem; padding:0.5rem; width:280px; box-shadow:0 -4px 16px rgba(0,0,0,0.5); z-index:100;">
+          <div style="font-size:0.7rem; font-weight:600; color:#818cf8; text-transform:uppercase; margin-bottom:0.4rem; padding-left:0.25rem;">Slash Commands</div>
+          <div class="cmd-item" onclick="insertCommand('/action ')" style="padding:0.4rem; border-radius:0.25rem; cursor:pointer; font-size:0.85rem; color:#f8fafc; transition:background 0.15s;" onmouseover="this.style.background='rgba(99,102,241,0.3)'" onmouseout="this.style.background='transparent'"><strong>/action</strong> <span style="color:#94a3b8; font-size:0.75rem;">Physical movement/posture</span></div>
+          <div class="cmd-item" onclick="insertCommand('/speak ')" style="padding:0.4rem; border-radius:0.25rem; cursor:pointer; font-size:0.85rem; color:#f8fafc; transition:background 0.15s;" onmouseover="this.style.background='rgba(99,102,241,0.3)'" onmouseout="this.style.background='transparent'"><strong>/speak</strong> <span style="color:#94a3b8; font-size:0.75rem;">Spoken dialogue</span></div>
+          <div class="cmd-item" onclick="insertCommand('/thought ')" style="padding:0.4rem; border-radius:0.25rem; cursor:pointer; font-size:0.85rem; color:#f8fafc; transition:background 0.15s;" onmouseover="this.style.background='rgba(99,102,241,0.3)'" onmouseout="this.style.background='transparent'"><strong>/thought</strong> <span style="color:#94a3b8; font-size:0.75rem;">Internal character thoughts</span></div>
+          <div class="cmd-item" onclick="insertCommand('/phase ')" style="padding:0.4rem; border-radius:0.25rem; cursor:pointer; font-size:0.85rem; color:#f8fafc; transition:background 0.15s;" onmouseover="this.style.background='rgba(99,102,241,0.3)'" onmouseout="this.style.background='transparent'"><strong>/phase</strong> <span style="color:#94a3b8; font-size:0.75rem;">Set active phase (1, 2, 3)</span></div>
+        </div>
+
+        <div class="chat-input-bar">
+          <input type="text" id="userInput" placeholder="Type a message or / for commands..." oninput="handleInput(event)" onkeypress="handleKeyPress(event)" disabled>
+          <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+        </div>
       </div>
     </div>
   </div>
+
 
   <script>
     let activeSessionId = null;
@@ -567,8 +578,31 @@
       }
     }
 
+    function handleInput(e) {
+      const val = e.target.value;
+      const cmdMenu = document.getElementById('cmdMenu');
+      if (val.trim() === '/' || (val.startsWith('/') && !val.includes(' '))) {
+        cmdMenu.style.display = 'block';
+      } else {
+        cmdMenu.style.display = 'none';
+      }
+    }
+
+    function insertCommand(cmd) {
+      const input = document.getElementById('userInput');
+      const val = input.value;
+      if (val.startsWith('/')) {
+        input.value = cmd;
+      } else {
+        input.value = val + cmd;
+      }
+      document.getElementById('cmdMenu').style.display = 'none';
+      input.focus();
+    }
+
     function handleKeyPress(e) {
       if (e.key === 'Enter') {
+        document.getElementById('cmdMenu').style.display = 'none';
         sendMessage();
       }
     }
@@ -576,6 +610,7 @@
     function escapeHtml(str) {
       return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
+
 
     // Initial load
     fetchSessions();

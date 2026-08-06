@@ -85,17 +85,18 @@ def test_extract_json_from_text():
     from app.engine.llm import extract_json_from_text
 
     # 1. Clean JSON string
-    assert extract_json_from_text('{"message": "Hello!"}') == {"message": "Hello!"}
+    assert extract_json_from_text('{"message": "Hello!"}')["message"] == "Hello!"
 
     # 2. Markdown codeblock wrapped JSON
     markdown_json = "```json\n{\n  \"message\": \"Markdown reply\"\n}\n```"
-    assert extract_json_from_text(markdown_json) == {"message": "Markdown reply"}
+    assert extract_json_from_text(markdown_json)["message"] == "Markdown reply"
 
     # 3. Text commentary around JSON object
     commentary_json = "Here is the response: {\"message\": \"Inside braces\"} Hope this helps!"
-    assert extract_json_from_text(commentary_json) == {"message": "Inside braces"}
+    assert extract_json_from_text(commentary_json)["message"] == "Inside braces"
 
     # 4. Raw plain text fallback (not JSON)
     raw_plain_text = "I am an open weights model speaking plain text."
-    assert extract_json_from_text(raw_plain_text) == {"message": "I am an open weights model speaking plain text."}
+    assert extract_json_from_text(raw_plain_text)["message"] == "I am an open weights model speaking plain text."
+
 

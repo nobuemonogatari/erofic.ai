@@ -102,19 +102,31 @@ async def send_message_endpoint(
             status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
         )
 
-    logger.info(f"[API] Received message for session {session_id}: '{req.content[:60]}...'")
+    content = req.content.strip()
+
+    # Multi-command parser for /phase <N>
+    if "/phase" in content.lower() and session_obj.scene_config_id:
+        import re
+        phase_match = re.search(r"/phase\s+([1-3])", content, re.IGNORECASE)
+        if phase_match:
+            new_phase = int(phase_match.group(1))
+            await crud.update_scene_config(db, session_obj.scene_config_id, current_phase=new_phase)
+            logger.info(f"[API] Updated active phase to Phase {new_phase} for scene {session_obj.scene_config_id}")
+
+    logger.info(f"[API] Received message for session {session_id}: '{content[:60]}...'")
 
     user_msg = await crud.create_message(
         db=db,
         session_id=session_id,
         role=MessageRole.USER,
-        content=req.content,
+        content=content,
     )
 
     logger.info(f"[API] Dispatched non-blocking background event processor task for session {session_id}")
     background_tasks.add_task(run_async_event_processor, session_id)
 
     return user_msg
+
 
 
 @router.get("/sessions/{session_id}/messages", response_model=list[MessageResponse])

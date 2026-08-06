@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>erofic.ai - Scene & Library Configuration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      --panel-bg: rgba(30, 41, 59, 0.75);
+      --border-color: rgba(255, 255, 255, 0.1);
+      --primary-color: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent-color: #ec4899;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --card-bg: rgba(15, 23, 42, 0.6);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+    body {
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      background: linear-gradient(to right, #818cf8, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      margin-left: 1.5rem;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text-main); }
+
+    .main-layout {
+      flex: 1;
+      display: flex;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem;
+      gap: 2rem;
+    }
+
+    .tab-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      width: 220px;
+    }
+
+    .tab-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 0.85rem 1.25rem;
+      border-radius: 0.75rem;
+      text-align: left;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+    }
+
+    .tab-btn.active {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .content-area {
+      flex: 1;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 1rem;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1rem;
+    }
+
+    .btn-primary {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .items-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .item-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .item-card h3 {
+      font-size: 1.1rem;
+      color: #818cf8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .item-card .tag {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+    }
+
+    .item-card p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Modal Form */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal.active { display: flex; }
+
+    .modal-content {
+      background: #1e293b;
+      border: 1px solid var(--border-color);
+      border-radius: 1rem;
+      padding: 2rem;
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .form-group label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .form-group input, .form-group textarea {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+      border-radius: 0.5rem;
+      padding: 0.6rem;
+      color: var(--text-main);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>erofic.ai Scene & Library Hub</h1>
+    <div class="nav-links">
+      <a href="/">Portal</a>
+      <a href="/simple-chat">Simple Chat</a>
+      <a href="/scene-config" style="color: white; font-weight: 600;">Scene Config</a>
+      <a href="/docs" target="_blank">API Docs</a>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('scenarios')">🎬 Scenarios</button>
+      <button class="tab-btn" onclick="switchTab('characters')">🎭 Characters</button>
+      <button class="tab-btn" onclick="switchTab('settings')">🏰 Settings</button>
+      <button class="tab-btn" onclick="switchTab('relationships')">⚡ Relationships</button>
+      <button class="tab-btn" onclick="switchTab('styles')">🎨 3-Phase Styles</button>
+    </div>
+
+    <div class="content-area">
+      <div class="section-header">
+        <h2 id="tab-title">Pre-Packaged & Custom Scenarios</h2>
+        <button class="btn-primary" onclick="openCreateModal()">+ Add New</button>
+      </div>
+
+      <div class="items-grid" id="items-grid">
+        <!-- Loaded dynamically via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Creating New Items -->
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <h2 id="modal-title">Add Item</h2>
+      <form id="modal-form" onsubmit="handleFormSubmit(event)">
+        <div id="form-fields"></div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+          <button type="button" onclick="closeModal()" style="background: transparent; border: 1px solid var(--border-color); color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer;">Cancel</button>
+          <button type="submit" class="btn-primary">Save to Library</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let activeTab = 'scenarios';
+
+    const tabTitles = {
+      scenarios: 'Pre-Packaged & Custom Scenarios',
+      characters: 'Character Profiles Library',
+      settings: 'Setting & Environment Presets',
+      relationships: 'Relationship Dynamics',
+      styles: '3-Phase Style & Tone Presets'
+    };
+
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('tab-title').textContent = tabTitles[tab];
+      loadData();
+    }
+
+    async function loadData() {
+      const grid = document.getElementById('items-grid');
+      grid.innerHTML = '<p style="color: var(--text-muted);">Loading library items...</p>';
+
+      let endpoint = '/api/scenes';
+      if (activeTab === 'characters') endpoint = '/api/characters';
+      if (activeTab === 'settings') endpoint = '/api/settings';
+      if (activeTab === 'relationships') endpoint = '/api/relationships';
+      if (activeTab === 'styles') endpoint = '/api/styles';
+
+      try {
+        const res = await fetch(endpoint);
+        const data = await res.json();
+        renderGrid(data);
+      } catch (err) {
+        grid.innerHTML = `<p style="color: #ef4444;">Failed to load data: ${err.message}</p>`;
+      }
+    }
+
+    function renderGrid(data) {
+      const grid = document.getElementById('items-grid');
+      if (!data || data.length === 0) {
+        grid.innerHTML = '<p style="color: var(--text-muted);">No items in this category yet.</p>';
+        return;
+      }
+
+      grid.innerHTML = data.map(item => {
+        if (activeTab === 'characters') {
+          return `
+            <div class="item-card">
+              <h3>${item.name} <span class="tag">${item.is_custom ? 'Custom' : 'Preset'}</span></h3>
+              <p><strong>Appearance:</strong> ${item.appearance || 'N/A'}</p>
+              <p><strong>Voice & Personality:</strong> ${item.personality_and_voice || 'N/A'}</p>
+            </div>
+          `;
+        } else if (activeTab === 'settings') {
+          return `
+            <div class="item-card">
+              <h3>${item.title} <span class="tag">${item.is_custom ? 'Custom' : 'Preset'}</span></h3>
+              <p><strong>Description:</strong> ${item.location_description}</p>
+              <p><strong>Sensory:</strong> ${item.sensory_details}</p>
+            </div>
+          `;
+        } else if (activeTab === 'relationships') {
+          return `
+            <div class="item-card">
+              <h3>${item.name} <span class="tag">${item.is_custom ? 'Custom' : 'Preset'}</span></h3>
+              <p><strong>History:</strong> ${item.history_description}</p>
+              <p><strong>Power Dynamic:</strong> ${item.power_dynamic}</p>
+            </div>
+          `;
+        } else if (activeTab === 'styles') {
+          return `
+            <div class="item-card">
+              <h3>${item.name} <span class="tag">${item.is_custom ? 'Custom' : 'Preset'}</span></h3>
+              <p><strong>Phase 1 (Spark):</strong> ${item.phase_1_prompt}</p>
+              <p><strong>Phase 2 (Intimacy):</strong> ${item.phase_2_prompt}</p>
+              <p><strong>Phase 3 (Steamy):</strong> ${item.phase_3_prompt}</p>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="item-card">
+              <h3>${item.title} <span class="tag">Phase ${item.current_phase}</span></h3>
+              <p><strong>Setting:</strong> ${item.setting ? item.setting.title : 'None'}</p>
+              <p><strong>Relationship:</strong> ${item.relationship_dynamic ? item.relationship_dynamic.name : 'None'}</p>
+              <p><strong>User POV:</strong> ${item.user_pov_character ? item.user_pov_character.name : 'None'}</p>
+            </div>
+          `;
+        }
+      }).join('');
+    }
+
+    function openCreateModal() {
+      document.getElementById('modal-title').textContent = `Add New ${activeTab.slice(0, -1)}`;
+      const formFields = document.getElementById('form-fields');
+
+      if (activeTab === 'characters') {
+        formFields.innerHTML = `
+          <div class="form-group"><label>Name</label><input id="f_name" required></div>
+          <div class="form-group"><label>Appearance</label><textarea id="f_app" rows="3"></textarea></div>
+          <div class="form-group"><label>Personality & Voice</label><textarea id="f_pv" rows="3"></textarea></div>
+          <div class="form-group"><label>Desires & Dynamics</label><textarea id="f_dd" rows="3"></textarea></div>
+        `;
+      } else if (activeTab === 'settings') {
+        formFields.innerHTML = `
+          <div class="form-group"><label>Title</label><input id="f_title" required></div>
+          <div class="form-group"><label>Location Description</label><textarea id="f_desc" rows="3"></textarea></div>
+          <div class="form-group"><label>Sensory Details</label><textarea id="f_sens" rows="3"></textarea></div>
+        `;
+      } else if (activeTab === 'relationships') {
+        formFields.innerHTML = `
+          <div class="form-group"><label>Name</label><input id="f_name" required></div>
+          <div class="form-group"><label>History Description</label><textarea id="f_hist" rows="3"></textarea></div>
+          <div class="form-group"><label>Power Dynamic</label><textarea id="f_pow" rows="3"></textarea></div>
+          <div class="form-group"><label>Current Tension</label><textarea id="f_tens" rows="3"></textarea></div>
+        `;
+      } else if (activeTab === 'styles') {
+        formFields.innerHTML = `
+          <div class="form-group"><label>Name</label><input id="f_name" required></div>
+          <div class="form-group"><label>Phase 1 Prompt (Spark & Banter)</label><textarea id="f_p1" rows="2"></textarea></div>
+          <div class="form-group"><label>Phase 2 Prompt (Intimacy)</label><textarea id="f_p2" rows="2"></textarea></div>
+          <div class="form-group"><label>Phase 3 Prompt (Steamy Passion)</label><textarea id="f_p3" rows="2"></textarea></div>
+        `;
+      } else {
+        formFields.innerHTML = `
+          <div class="form-group"><label>Scene Title</label><input id="f_title" required></div>
+        `;
+      }
+
+      document.getElementById('modal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('active');
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      let payload = {};
+      let endpoint = '/api/scenes';
+
+      if (activeTab === 'characters') {
+        endpoint = '/api/characters';
+        payload = {
+          name: document.getElementById('f_name').value,
+          appearance: document.getElementById('f_app').value,
+          personality_and_voice: document.getElementById('f_pv').value,
+          desires_and_dynamics: document.getElementById('f_dd').value
+        };
+      } else if (activeTab === 'settings') {
+        endpoint = '/api/settings';
+        payload = {
+          title: document.getElementById('f_title').value,
+          location_description: document.getElementById('f_desc').value,
+          sensory_details: document.getElementById('f_sens').value
+        };
+      } else if (activeTab === 'relationships') {
+        endpoint = '/api/relationships';
+        payload = {
+          name: document.getElementById('f_name').value,
+          history_description: document.getElementById('f_hist').value,
+          power_dynamic: document.getElementById('f_pow').value,
+          current_tension: document.getElementById('f_tens').value
+        };
+      } else if (activeTab === 'styles') {
+        endpoint = '/api/styles';
+        payload = {
+          name: document.getElementById('f_name').value,
+          phase_1_prompt: document.getElementById('f_p1').value,
+          phase_2_prompt: document.getElementById('f_p2').value,
+          phase_3_prompt: document.getElementById('f_p3').value
+        };
+      } else {
+        payload = { title: document.getElementById('f_title').value };
+      }
+
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      closeModal();
+      loadData();
+    }
+
+    // Load initial tab data
+    loadData();
+  </script>
+</body>
+</html>

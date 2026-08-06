@@ -63,13 +63,30 @@ if STATIC_DIR.exists():
 
 
 @app.get("/")
-async def root_frontend():
+async def root_portal():
     index_file = STATIC_DIR / "index.html"
     if index_file.exists():
         return FileResponse(index_file)
     return {"message": "Core AI Chat Engine API active. Docs at /docs"}
 
 
+@app.get("/simple-chat")
+async def simple_chat_frontend():
+    chat_file = STATIC_DIR / "simple_chat.html"
+    if chat_file.exists():
+        return FileResponse(chat_file)
+    return {"message": "Simple Chat page not found."}
+
+
+@app.get("/scene-config")
+async def scene_config_frontend():
+    config_file = STATIC_DIR / "scene_config.html"
+    if config_file.exists():
+        return FileResponse(config_file)
+    return {"message": "Scene Config page not found."}
+
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "version": "1.0.0"}
+

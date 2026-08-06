@@ -26,6 +26,7 @@ def build_llm_messages(
     current_time: datetime | None = None,
     trigger_type: str = "user_input",
     user_pov_name: str | None = None,
+    npc_name: str | None = None,
 ) -> list[dict[str, str]]:
     now = current_time or datetime.now(timezone.utc)
     llm_payload: list[dict[str, str]] = []
@@ -47,9 +48,13 @@ def build_llm_messages(
         role_str = msg.role.value if hasattr(msg.role, "value") else str(msg.role)
         content_text = msg.content
 
-        # Prefix user actions/speech with character name attribution if available
-        if role_str == "user" and user_pov_name:
+        # Prefix user actions/speech with protagonist character attribution
+        if role_str == "user" and user_pov_name and not content_text.startswith("["):
             content_text = f"[{user_pov_name}'s action/speech]: {content_text}"
+
+        # Prefix assistant actions/speech with NPC character attribution
+        elif role_str == "assistant" and npc_name and not content_text.startswith("["):
+            content_text = f"[{npc_name}'s turn]: {content_text}"
 
         llm_payload.append({
             "role": role_str,
@@ -57,4 +62,5 @@ def build_llm_messages(
         })
 
     return llm_payload
+
 

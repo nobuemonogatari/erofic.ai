@@ -56,6 +56,12 @@ async def process_event(
             active_system_prompt = build_character_turn_system_prompt(session_obj.scene_config)
 
         user_pov_name = session_obj.scene_config.user_pov_character.name if (session_obj.scene_config and session_obj.scene_config.user_pov_character) else None
+        
+        npc_name = None
+        if session_obj.scene_config and session_obj.scene_config.characters:
+            non_user = [c for c in session_obj.scene_config.characters if not session_obj.scene_config.user_pov_character or c.id != session_obj.scene_config.user_pov_character.id]
+            if non_user:
+                npc_name = ", ".join(c.name for c in non_user)
 
         llm_payload = build_llm_messages(
             system_prompt=active_system_prompt,
@@ -64,8 +70,10 @@ async def process_event(
             current_time=now,
             trigger_type=trigger_type,
             user_pov_name=user_pov_name,
+            npc_name=npc_name,
         )
         logger.debug(f"[ENGINE] Prepared LLM payload with {len(llm_payload)} items (trigger: {trigger_type})")
+
 
 
 

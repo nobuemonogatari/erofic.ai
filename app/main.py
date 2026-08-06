@@ -66,8 +66,9 @@ if STATIC_DIR.exists():
 async def root_portal():
     index_file = STATIC_DIR / "index.html"
     if index_file.exists():
-        return FileResponse(index_file)
+        return FileResponse(index_file, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
     return {"message": "Core AI Chat Engine API active. Docs at /docs"}
+
 
 
 @app.get("/simple-chat")

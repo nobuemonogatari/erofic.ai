@@ -345,15 +345,32 @@
             </div>
           `;
         } else {
+          const charsList = item.characters && item.characters.length > 0
+            ? item.characters.map(c => c.name).join(', ')
+            : 'None';
+
+          let rolesFormatted = 'None';
+          if (item.role_assignments && Object.keys(item.role_assignments).length > 0) {
+            rolesFormatted = Object.entries(item.role_assignments)
+              .map(([role, charId]) => {
+                const matchedChar = item.characters ? item.characters.find(c => c.id === charId) : null;
+                return `<strong>${role}:</strong> ${matchedChar ? matchedChar.name : charId}`;
+              }).join(' | ');
+          }
+
           return `
-            <div class="item-card">
-              <h3>${item.title} <span class="tag">Phase ${item.current_phase}</span></h3>
-              <p><strong>Setting:</strong> ${item.setting ? item.setting.title : 'None'}</p>
-              <p><strong>Relationship:</strong> ${item.relationship_dynamic ? item.relationship_dynamic.name : 'None'}</p>
-              <p><strong>User POV:</strong> ${item.user_pov_character ? item.user_pov_character.name : 'None'}</p>
+            <div class="item-card" style="grid-column: span 2;">
+              <h3>${item.title} <span class="tag">Active Phase ${item.current_phase}</span></h3>
+              <p><strong>Characters Present:</strong> ${charsList}</p>
+              <p><strong>User POV Character:</strong> ${item.user_pov_character ? item.user_pov_character.name : 'None'} ("I")</p>
+              <p><strong>Role Assignments:</strong> ${rolesFormatted}</p>
+              <p><strong>Setting:</strong> ${item.setting ? item.setting.title + ' — ' + item.setting.location_description : 'None'}</p>
+              <p><strong>Relationship Dynamic:</strong> ${item.relationship_dynamic ? item.relationship_dynamic.name + ' — ' + item.relationship_dynamic.history_description : 'None'}</p>
+              <p><strong>Style Preset:</strong> ${item.style ? item.style.name + ' (' + item.style.pacing + ')' : 'None'}</p>
             </div>
           `;
         }
+
       }).join('');
     }
 

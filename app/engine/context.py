@@ -25,6 +25,7 @@ def build_llm_messages(
     max_history: int = 20,
     current_time: datetime | None = None,
     trigger_type: str = "user_input",
+    user_pov_name: str | None = None,
 ) -> list[dict[str, str]]:
     now = current_time or datetime.now(timezone.utc)
     llm_payload: list[dict[str, str]] = []
@@ -41,11 +42,19 @@ def build_llm_messages(
     unified_system_content = system_instruction.format(persona_guidelines=persona_text).strip()
     llm_payload.append({"role": "system", "content": unified_system_content})
 
-    # 4. Append chat history (without trailing pings)
+    # 4. Append chat history with character attribution
     for msg in recent_messages:
+        role_str = msg.role.value if hasattr(msg.role, "value") else str(msg.role)
+        content_text = msg.content
+
+        # Prefix user actions/speech with character name attribution if available
+        if role_str == "user" and user_pov_name:
+            content_text = f"[{user_pov_name}'s action/speech]: {content_text}"
+
         llm_payload.append({
-            "role": msg.role.value if hasattr(msg.role, "value") else str(msg.role),
-            "content": msg.content,
+            "role": role_str,
+            "content": content_text,
         })
 
     return llm_payload
+

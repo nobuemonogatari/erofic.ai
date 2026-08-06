@@ -55,14 +55,18 @@ async def process_event(
             from app.engine.prompts import build_character_turn_system_prompt
             active_system_prompt = build_character_turn_system_prompt(session_obj.scene_config)
 
+        user_pov_name = session_obj.scene_config.user_pov_character.name if (session_obj.scene_config and session_obj.scene_config.user_pov_character) else None
+
         llm_payload = build_llm_messages(
             system_prompt=active_system_prompt,
             system_instruction=SYSTEM_JSON_INSTRUCTION,
             messages=messages,
             current_time=now,
             trigger_type=trigger_type,
+            user_pov_name=user_pov_name,
         )
         logger.debug(f"[ENGINE] Prepared LLM payload with {len(llm_payload)} items (trigger: {trigger_type})")
+
 
 
 

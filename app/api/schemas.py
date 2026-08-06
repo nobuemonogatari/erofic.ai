@@ -6,15 +6,18 @@ from app.models import MessageRole
 # Existing Session & Message Schemas
 class SessionCreateRequest(BaseModel):
     system_prompt: str = ""
+    scene_config_id: str | None = None
 
 
 class SessionResponse(BaseModel):
     id: str
     system_prompt: str
+    scene_config_id: str | None = None
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
 
 
 class MessageCreateRequest(BaseModel):

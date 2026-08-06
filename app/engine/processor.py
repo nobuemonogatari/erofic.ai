@@ -53,7 +53,8 @@ async def process_event(
             current_time=now,
             trigger_type=trigger_type,
         )
-        logger.debug(f"[ENGINE] Prepared LLM payload with {len(llm_payload)} items (including time awareness)")
+        logger.debug(f"[ENGINE] Prepared LLM payload with {len(llm_payload)} items (trigger: {trigger_type})")
+
 
         # 4. Call LLM Client
         client = llm_client or LLMClient()

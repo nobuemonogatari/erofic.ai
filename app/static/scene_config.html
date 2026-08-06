@@ -373,7 +373,10 @@
 
           return `
             <div class="item-card" style="grid-column: span 2;">
-              <h3>${item.title} <span class="tag">Active Phase ${item.current_phase}</span></h3>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>${item.title} <span class="tag">Active Phase ${item.current_phase}</span></h3>
+                <button class="btn-primary" onclick="startStorySession('${item.id}')" style="padding:0.4rem 0.8rem; font-size:0.85rem;">▶ Start Story Session</button>
+              </div>
               <p><strong>ID:</strong> <code style="font-size:0.75rem; color:#a5b4fc;">${item.id}</code></p>
               <p><strong>Session ID:</strong> ${item.session_id ? `<code style="font-size:0.75rem; color:#a5b4fc;">${item.session_id}</code>` : 'Unlinked'}</p>
               <p><strong>Characters Present:</strong> ${charsList}</p>
@@ -386,6 +389,7 @@
             </div>
           `;
         }
+
 
 
       }).join('');
@@ -485,8 +489,23 @@
       loadData();
     }
 
+    async function startStorySession(sceneConfigId) {
+      try {
+        const res = await fetch('/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scene_config_id: sceneConfigId })
+        });
+        const session = await res.json();
+        window.location.href = `/simple-chat?session_id=${session.id}`;
+      } catch (err) {
+        alert('Failed to start story session: ' + err.message);
+      }
+    }
+
     // Load initial tab data
     loadData();
   </script>
 </body>
 </html>
+

@@ -34,11 +34,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-async def run_async_event_processor(session_id: str):
+from app.engine.prompts import build_opening_scene_system_prompt
+
+
+async def run_async_event_processor(session_id: str, trigger_type: str = "user_input"):
     async with async_session_factory() as db:
         try:
-            logger.info(f"[BACKGROUND_TASK] Executing event processor for session {session_id}...")
-            await process_event(db=db, session_id=session_id, trigger_type="user_input")
+            logger.info(f"[BACKGROUND_TASK] Executing event processor for session {session_id} (trigger: {trigger_type})...")
+            await process_event(db=db, session_id=session_id, trigger_type=trigger_type)
         except Exception as e:
             logger.error(f"[BACKGROUND_TASK] Error executing event processor for session {session_id}: {e}")
 
@@ -47,11 +50,33 @@ async def run_async_event_processor(session_id: str):
 @router.post("/sessions", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_session_endpoint(
     req: SessionCreateRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_async_session),
 ):
-    session_obj = await crud.create_session(db, system_prompt=req.system_prompt)
-    logger.info(f"[API] Created new chat session: {session_obj.id} (System prompt length: {len(req.system_prompt)})")
+    system_prompt = req.system_prompt
+    scene_config = None
+
+    if req.scene_config_id:
+        scene_config = await crud.get_scene_config(db, req.scene_config_id)
+        if not scene_config:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Scene configuration '{req.scene_config_id}' not found",
+            )
+        system_prompt = build_opening_scene_system_prompt(scene_config)
+
+    session_obj = await crud.create_session(
+        db, system_prompt=system_prompt, scene_config_id=req.scene_config_id
+    )
+    logger.info(f"[API] Created new chat session: {session_obj.id} (Bound Scene: {req.scene_config_id})")
+
+    # If bound to a scenario, trigger opening scene beat generation automatically
+    if req.scene_config_id:
+        logger.info(f"[API] Dispatching background opening scene beat task for session {session_obj.id}")
+        background_tasks.add_task(run_async_event_processor, session_obj.id, "scene_init")
+
     return session_obj
+
 
 
 @router.get("/sessions", response_model=list[SessionResponse])

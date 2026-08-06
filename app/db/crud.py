@@ -19,22 +19,30 @@ from app.models import (
 
 # --- Existing Session & Message CRUD ---
 async def create_session(
-    db: AsyncSession, system_prompt: str = ""
+    db: AsyncSession, system_prompt: str = "", scene_config_id: str | None = None
 ) -> SessionModel:
-    session_obj = SessionModel(system_prompt=system_prompt)
+    session_obj = SessionModel(system_prompt=system_prompt, scene_config_id=scene_config_id)
     db.add(session_obj)
     await db.commit()
-    await db.refresh(session_obj)
-    return session_obj
+    return await get_session(db, session_obj.id)
 
 
 async def get_session(
     db: AsyncSession, session_id: str
 ) -> SessionModel | None:
     result = await db.execute(
-        select(SessionModel).where(SessionModel.id == session_id)
+        select(SessionModel)
+        .options(
+            selectinload(SessionModel.scene_config).selectinload(SceneConfigModel.setting),
+            selectinload(SessionModel.scene_config).selectinload(SceneConfigModel.relationship_dynamic),
+            selectinload(SessionModel.scene_config).selectinload(SceneConfigModel.style),
+            selectinload(SessionModel.scene_config).selectinload(SceneConfigModel.user_pov_character),
+            selectinload(SessionModel.scene_config).selectinload(SceneConfigModel.characters),
+        )
+        .where(SessionModel.id == session_id)
     )
     return result.scalar_one_or_none()
+
 
 
 async def get_all_sessions(
@@ -433,10 +441,12 @@ async def list_scene_configs(
     for s in scenes:
         if isinstance(s.role_assignments, str):
             try:
-                s.role_assignments = json.loads(s.role_assignments)
+                parsed = json.loads(s.role_assignments)
+                object.__setattr__(s, "parsed_role_assignments", parsed)
             except Exception:
-                s.role_assignments = {}
+                object.__setattr__(s, "parsed_role_assignments", {})
     return scenes
+
 
 
 async def update_scene_config(

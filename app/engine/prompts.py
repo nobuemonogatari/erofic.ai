@@ -1,6 +1,9 @@
 import inspect
-import re
-from typing import Any, Callable
+import logging
+from typing import Any
+from app.models.scene import SceneConfigModel
+
+logger = logging.getLogger(__name__)
 
 
 class SystemPromptBuilder:
@@ -57,10 +60,7 @@ class SystemPromptBuilder:
 
 
 def prompt_template(text: str, **kwargs: Any) -> str:
-    """Utility helper to clean up multi-line triple-quoted prompt strings and optional formatting.
-    
-    Automatically strips common leading indentation while preserving inner layout.
-    """
+    """Utility helper to clean up multi-line triple-quoted prompt strings and optional formatting."""
     cleaned = inspect.cleandoc(text).strip()
     if kwargs:
         return cleaned.format(**kwargs)
@@ -101,3 +101,82 @@ def build_system_json_instruction() -> str:
 
 # Default JSON system instruction string for backwards-compatibility
 SYSTEM_JSON_INSTRUCTION = build_system_json_instruction()
+
+
+def build_opening_scene_system_prompt(scene: SceneConfigModel) -> str:
+    """
+    Compiles the Master Opening System Prompt for a SceneConfig to generate Chapter 1's Opening Beat.
+    """
+    # 1. Format Characters Present
+    chars_text = ""
+    if scene.characters:
+        for c in scene.characters:
+            chars_text += (
+                f"- **{c.name}**:\n"
+                f"  - Appearance: {c.appearance}\n"
+                f"  - Personality & Voice: {c.personality_and_voice}\n"
+                f"  - Desires & Dynamics: {c.desires_and_dynamics}\n"
+            )
+    else:
+        chars_text = "- Unspecified characters\n"
+
+    # 2. Format Role Assignments
+    roles_text = ""
+    roles_dict = scene.role_assignments_dict if hasattr(scene, "role_assignments_dict") else {}
+    if roles_dict:
+        for role, char_id in roles_dict.items():
+            matched = next((c for c in (scene.characters or []) if c.id == char_id), None)
+            char_name = matched.name if matched else char_id
+            roles_text += f"- **{role}**: {char_name}\n"
+    else:
+        roles_text = "- None assigned\n"
+
+    # 3. Determine Active Phase Style Directive
+    style_obj = scene.style
+    phase_num = scene.current_phase or 1
+    phase_prompt_text = ""
+    if style_obj:
+        if phase_num == 1:
+            phase_prompt_text = style_obj.phase_1_prompt or style_obj.pacing
+        elif phase_num == 2:
+            phase_prompt_text = style_obj.phase_2_prompt or style_obj.pacing
+        elif phase_num == 3:
+            phase_prompt_text = style_obj.phase_3_prompt or style_obj.pacing
+        else:
+            phase_prompt_text = style_obj.phase_1_prompt or style_obj.pacing
+
+    user_pov_name = scene.user_pov_character.name if scene.user_pov_character else "Protagonist"
+
+    # 4. Assemble Master Opening System Prompt
+    return f"""You are an expert fiction author opening Chapter 1 of an immersive, dialogue-heavy erotic novel scene.
+
+### SCENE CONFIGURATION
+- **Primary Setting**: {scene.setting.title if scene.setting else 'Default Room'}
+  - Location Details: {scene.setting.location_description if scene.setting else ''}
+  - Sensory Backdrop: {scene.setting.sensory_details if scene.setting else ''}
+  - Mood Tags: {scene.setting.mood_tags if scene.setting else ''}
+
+- **Characters Present**:
+{chars_text}
+
+- **Relationship Dynamic**: {scene.relationship_dynamic.name if scene.relationship_dynamic else 'Unspecified'}
+  - History & Background: {scene.relationship_dynamic.history_description if scene.relationship_dynamic else ''}
+  - Power Dynamic: {scene.relationship_dynamic.power_dynamic if scene.relationship_dynamic else ''}
+  - Current Tension: {scene.relationship_dynamic.current_tension if scene.relationship_dynamic else ''}
+
+- **Role Assignments**:
+{roles_text}
+
+- **Active User POV Character**: **{user_pov_name}** ("I")
+- **Active Narrative Phase**: Phase {phase_num}
+  - Phase Directive: {phase_prompt_text}
+
+### INSTRUCTIONS FOR OPENING THE SCENE
+1. Invent an immediate starting situation or action beat that drops the characters right into this setting.
+2. Write 2 to 4 paragraphs of high-quality literary novel prose in standard novel format with quotation marks ("...") for dialogue.
+3. Conclude with an active moment, question, or provocative action that leaves an obvious opening for the user to respond.
+
+### STRICT USER AUTONOMY GUARDRAILS
+- The user plays as **{user_pov_name}** (1st person POV / "I").
+- **NEVER** write dialogue, internal thoughts, or decisions for **{user_pov_name}**.
+- Output ONLY the literary story text with ZERO meta-commentary or intro text ("Here is the scene:")."""

@@ -154,16 +154,19 @@ Narrate Chapter 1's opening beat in 1 to 2 short, expressive paragraphs (under 1
 - **Active Phase**: Phase {phase_num} — {phase_prompt_text}
 
 ### INSTRUCTIONS FOR THE OPENING ACTION BEAT
-1. **Focus on Immediate Physical Action & Confrontation**:
+1. **Simple, Grounded & Easy-to-Read Language**:
+   - Use plain, natural, easy-to-read English. Avoid overly fancy words, complicated metaphors, or purple prose. Keep sentences clear, punchy, and direct.
+2. **Focus on Immediate Physical Action & Confrontation**:
    - Skip long scenery descriptions.
    - Immediately narrate a vivid physical action beat (e.g. {user_pov_name} arriving with a treat/opening a bag, and the non-user character popping up, leaning close, or cornering {user_pov_name}).
-2. **Dialogue & Hook**:
+3. **Dialogue & Hook**:
    - Weave 1-2 sharp lines of in-character dialogue in quotation marks into the physical action.
    - End with a provocative gesture or spoken question inviting {user_pov_name} to react.
 
 ### GUARDRAILS
 - User controls **{user_pov_name}**. NEVER write speech or choices for **{user_pov_name}**.
 - Output ONLY literary story prose. Zero intro text."""
+
 
 
 

@@ -311,42 +311,56 @@
       }
 
       grid.innerHTML = data.map(item => {
+      grid.innerHTML = data.map(item => {
         if (activeTab === 'characters') {
           return `
-            <div class="item-card">
+            <div class="item-card" style="grid-column: span 2;">
               <h3>${item.name} <span class="tag">${item.is_custom ? 'Custom' : 'Preset'}</span></h3>
+              <p><strong>ID:</strong> <code style="font-size:0.75rem; color:#a5b4fc;">${item.id}</code></p>
               <p><strong>Appearance:</strong> ${item.appearance || 'N/A'}</p>
-              <p><strong>Voice & Personality:</strong> ${item.personality_and_voice || 'N/A'}</p>
+              <p><strong>Personality & Voice:</strong> ${item.personality_and_voice || 'N/A'}</p>
+              <p><strong>Desires & Dynamics:</strong> ${item.desires_and_dynamics || 'N/A'}</p>
+              <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.5rem;">Created: ${new Date(item.created_at).toLocaleString()}</p>
             </div>
           `;
         } else if (activeTab === 'settings') {
           return `
-            <div class="item-card">
+            <div class="item-card" style="grid-column: span 2;">
               <h3>${item.title} <span class="tag">${item.is_custom ? 'Custom' : 'Preset'}</span></h3>
-              <p><strong>Description:</strong> ${item.location_description}</p>
-              <p><strong>Sensory:</strong> ${item.sensory_details}</p>
+              <p><strong>ID:</strong> <code style="font-size:0.75rem; color:#a5b4fc;">${item.id}</code></p>
+              <p><strong>Location Description:</strong> ${item.location_description}</p>
+              <p><strong>Sensory Details:</strong> ${item.sensory_details}</p>
+              <p><strong>Mood Tags:</strong> ${item.mood_tags || 'N/A'}</p>
+              <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.5rem;">Created: ${new Date(item.created_at).toLocaleString()}</p>
             </div>
           `;
         } else if (activeTab === 'relationships') {
           return `
-            <div class="item-card">
+            <div class="item-card" style="grid-column: span 2;">
               <h3>${item.name} <span class="tag">${item.is_custom ? 'Custom' : 'Preset'}</span></h3>
-              <p><strong>History:</strong> ${item.history_description}</p>
+              <p><strong>ID:</strong> <code style="font-size:0.75rem; color:#a5b4fc;">${item.id}</code></p>
+              <p><strong>History Description:</strong> ${item.history_description}</p>
               <p><strong>Power Dynamic:</strong> ${item.power_dynamic}</p>
+              <p><strong>Current Tension:</strong> ${item.current_tension}</p>
+              <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.5rem;">Created: ${new Date(item.created_at).toLocaleString()}</p>
             </div>
           `;
         } else if (activeTab === 'styles') {
           return `
-            <div class="item-card">
+            <div class="item-card" style="grid-column: span 2;">
               <h3>${item.name} <span class="tag">${item.is_custom ? 'Custom' : 'Preset'}</span></h3>
-              <p><strong>Phase 1 (Spark):</strong> ${item.phase_1_prompt}</p>
-              <p><strong>Phase 2 (Intimacy):</strong> ${item.phase_2_prompt}</p>
-              <p><strong>Phase 3 (Steamy):</strong> ${item.phase_3_prompt}</p>
+              <p><strong>ID:</strong> <code style="font-size:0.75rem; color:#a5b4fc;">${item.id}</code></p>
+              <p><strong>Pacing:</strong> ${item.pacing}</p>
+              <p><strong>Sensory Focus:</strong> ${item.sensory_focus}</p>
+              <p><strong>Phase 1 Prompt (Spark & Banter):</strong> ${item.phase_1_prompt}</p>
+              <p><strong>Phase 2 Prompt (Intimate Vulnerability):</strong> ${item.phase_2_prompt}</p>
+              <p><strong>Phase 3 Prompt (Unrestrained & Steamy):</strong> ${item.phase_3_prompt}</p>
+              <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.5rem;">Created: ${new Date(item.created_at).toLocaleString()}</p>
             </div>
           `;
         } else {
           const charsList = item.characters && item.characters.length > 0
-            ? item.characters.map(c => c.name).join(', ')
+            ? item.characters.map(c => `<strong>${c.name}</strong> (${c.id})`).join(', ')
             : 'None';
 
           let rolesFormatted = 'None';
@@ -361,15 +375,19 @@
           return `
             <div class="item-card" style="grid-column: span 2;">
               <h3>${item.title} <span class="tag">Active Phase ${item.current_phase}</span></h3>
+              <p><strong>ID:</strong> <code style="font-size:0.75rem; color:#a5b4fc;">${item.id}</code></p>
+              <p><strong>Session ID:</strong> ${item.session_id ? `<code style="font-size:0.75rem; color:#a5b4fc;">${item.session_id}</code>` : 'Unlinked'}</p>
               <p><strong>Characters Present:</strong> ${charsList}</p>
-              <p><strong>User POV Character:</strong> ${item.user_pov_character ? item.user_pov_character.name : 'None'} ("I")</p>
+              <p><strong>User POV Character:</strong> ${item.user_pov_character ? `<strong>${item.user_pov_character.name}</strong> ("I")` : 'None'}</p>
               <p><strong>Role Assignments:</strong> ${rolesFormatted}</p>
-              <p><strong>Setting:</strong> ${item.setting ? item.setting.title + ' — ' + item.setting.location_description : 'None'}</p>
-              <p><strong>Relationship Dynamic:</strong> ${item.relationship_dynamic ? item.relationship_dynamic.name + ' — ' + item.relationship_dynamic.history_description : 'None'}</p>
-              <p><strong>Style Preset:</strong> ${item.style ? item.style.name + ' (' + item.style.pacing + ')' : 'None'}</p>
+              <p><strong>Setting:</strong> ${item.setting ? `<strong>${item.setting.title}</strong> — ${item.setting.location_description} <em>(Sensory: ${item.setting.sensory_details})</em>` : 'None'}</p>
+              <p><strong>Relationship Dynamic:</strong> ${item.relationship_dynamic ? `<strong>${item.relationship_dynamic.name}</strong> — ${item.relationship_dynamic.history_description} <em>(Power: ${item.relationship_dynamic.power_dynamic} | Tension: ${item.relationship_dynamic.current_tension})</em>` : 'None'}</p>
+              <p><strong>Style Preset:</strong> ${item.style ? `<strong>${item.style.name}</strong> — <em>Pacing: ${item.style.pacing} | Sensory Focus: ${item.style.sensory_focus}</em>` : 'None'}</p>
+              <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.5rem;">Created: ${new Date(item.created_at).toLocaleString()}</p>
             </div>
           `;
         }
+
 
       }).join('');
     }

@@ -78,8 +78,9 @@ class LLMClient:
         api_key: str | None = None,
         base_url: str | None = None,
         model: str | None = None,
-        timeout: float = 15.0,
+        timeout: float = 60.0,
     ):
+
         self.api_key = api_key if api_key is not None else (settings.OPENAI_API_KEY or "no-key")
         self.base_url = base_url if base_url is not None else (settings.OPENAI_BASE_URL or None)
         self.model = model or settings.OPENAI_MODEL

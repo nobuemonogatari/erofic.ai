@@ -40,7 +40,8 @@ async def test_session_scenario_binding_and_opening_prompt(test_db: AsyncSession
     # Test prompt compilation
     prompt = build_opening_scene_system_prompt(session.scene_config)
     assert "SCENE CONFIGURATION" in prompt
-    assert "INSTRUCTIONS FOR THE OPENING SCENE BEAT" in prompt
-    assert "STRICT USER AUTONOMY GUARDRAILS" in prompt
+    assert "INSTRUCTIONS FOR THE OPENING SCENE NARRATION" in prompt
+    assert "STRICT USER AUTONOMY & AGENCY GUARDRAILS" in prompt
     assert "Phase 1" in prompt
+
 

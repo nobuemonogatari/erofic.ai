@@ -21,7 +21,8 @@ def test_system_prompt_builder():
 
 def test_system_json_instruction_formatting():
     formatted = SYSTEM_JSON_INSTRUCTION.format(persona_guidelines="3. Custom persona")
-    assert "SPEAKER IDENTIFICATION & DIALOGUE RULES:" in formatted
-    assert "CONVERSATION & DIALOGUE GUIDELINES:" in formatted
+    assert "ROLE & MANDATE: OMNISCIENT THIRD-PERSON NOVEL NARRATOR" in formatted
+    assert "NARRATIVE & FORMATTING RULES:" in formatted
     assert "3. Custom persona" in formatted
     assert "JSON RESPONSE REQUIREMENTS:" in formatted
+

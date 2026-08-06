@@ -336,13 +336,16 @@
   <div class="container">
     <!-- Sidebar -->
     <div class="sidebar">
-      <div>
         <div class="section-title">New Session</div>
         <div class="create-session-card">
-          <textarea id="systemPromptInput" rows="3" placeholder="System prompt (e.g. You are a helpful assistant...)"></textarea>
-          <button onclick="createSession()">Create Session</button>
+          <label style="font-size:0.75rem; color:var(--text-muted); font-weight:500;">Select Scenario:</label>
+          <select id="scenarioSelect" style="width:100%; background:rgba(15,23,42,0.8); border:1px solid var(--border-color); color:var(--text-main); padding:0.6rem; border-radius:0.5rem; font-size:0.85rem; outline:none; cursor:pointer;">
+            <option value="">Loading scenarios...</option>
+          </select>
+          <button onclick="createSession()" style="margin-top:0.4rem;">Start Scenario Session</button>
         </div>
       </div>
+
 
       <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
         <div class="section-title">Sessions (<span id="sessionCount">0</span>)</div>
@@ -388,6 +391,23 @@
     let knownMessageIds = new Set();
     let knownTaskStates = new Map(); // taskId -> status
 
+    async function fetchScenarios() {
+      try {
+        const res = await fetch('/api/scenes');
+        const scenes = await res.json();
+        const selectEl = document.getElementById('scenarioSelect');
+        if (scenes.length === 0) {
+          selectEl.innerHTML = '<option value="">No scenarios available</option>';
+          return;
+        }
+        selectEl.innerHTML = scenes.map(s => `
+          <option value="${s.id}">${s.title} (Phase ${s.current_phase})</option>
+        `).join('');
+      } catch (err) {
+        console.error('Error fetching scenarios:', err);
+      }
+    }
+
     async function fetchSessions() {
       try {
         const res = await fetch('/sessions');
@@ -402,7 +422,7 @@
           item.onclick = () => selectSession(s.id);
           item.innerHTML = `
             <div class="session-id">${s.id}</div>
-            <div class="session-prompt">${s.system_prompt || 'Default prompt'}</div>
+            <div class="session-prompt">${s.scene_config_id ? `Scenario Bound: <code style="color:#a5b4fc;">${s.scene_config_id}</code>` : (s.system_prompt || 'Default Session')}</div>
           `;
           listEl.appendChild(item);
         });
@@ -412,21 +432,25 @@
     }
 
     async function createSession() {
-      const prompt = document.getElementById('systemPromptInput').value;
+      const scenarioId = document.getElementById('scenarioSelect').value;
+      if (!scenarioId) {
+        alert('Please select a scenario first!');
+        return;
+      }
       try {
         const res = await fetch('/sessions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ system_prompt: prompt })
+          body: JSON.stringify({ scene_config_id: scenarioId })
         });
         const newSession = await res.json();
-        document.getElementById('systemPromptInput').value = '';
         await fetchSessions();
         selectSession(newSession.id);
       } catch (err) {
         console.error('Error creating session:', err);
       }
     }
+
 
     function selectSession(sessionId) {
       activeSessionId = sessionId;
@@ -613,7 +637,9 @@
 
 
     // Initial load
+    fetchScenarios();
     fetchSessions();
+
 
     // Auto-poll messages and system task events every 2 seconds
     setInterval(() => {

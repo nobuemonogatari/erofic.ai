@@ -113,7 +113,12 @@ async def send_message_endpoint(
             await crud.update_scene_config(db, session_obj.scene_config_id, current_phase=new_phase)
             logger.info(f"[API] Updated active phase to Phase {new_phase} for scene {session_obj.scene_config_id}")
 
+    # Default to /speak if no slash command prefix is provided
+    if session_obj.scene_config_id and not content.startswith("/"):
+        content = f"/speak {content}"
+
     logger.info(f"[API] Received message for session {session_id}: '{content[:60]}...'")
+
 
     user_msg = await crud.create_message(
         db=db,

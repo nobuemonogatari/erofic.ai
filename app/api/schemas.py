@@ -223,6 +223,10 @@ class PrePackagedScenarioResponse(BaseModel):
     user_pov_character: CharacterResponse | None = None
     characters: list[CharacterResponse] = []
 
-    model_config = ConfigDict(from_attributes=True)
+class OpeningScenePreviewResponse(BaseModel):
+    scene_config_id: str
+    system_prompt_compiled: str
+    generated_opening_beat: str
+
 
 

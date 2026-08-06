@@ -373,7 +373,10 @@
 
           return `
             <div class="item-card" style="grid-column: span 2;">
-              <h3>${item.title} <span class="tag">Active Phase ${item.current_phase}</span></h3>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>${item.title} <span class="tag">Active Phase ${item.current_phase}</span></h3>
+                <button class="btn-primary" onclick="generateInitialScene('${item.id}', this)" style="padding:0.4rem 0.8rem; font-size:0.85rem; background: linear-gradient(to right, #ec4899, #818cf8);">✨ Generate Initial Scene Setting</button>
+              </div>
               <p><strong>ID:</strong> <code style="font-size:0.75rem; color:#a5b4fc;">${item.id}</code></p>
               <p><strong>Session ID:</strong> ${item.session_id ? `<code style="font-size:0.75rem; color:#a5b4fc;">${item.session_id}</code>` : 'Unlinked'}</p>
               <p><strong>Characters Present:</strong> ${charsList}</p>
@@ -382,10 +385,15 @@
               <p><strong>Setting:</strong> ${item.setting ? `<strong>${item.setting.title}</strong> — ${item.setting.location_description} <em>(Sensory: ${item.setting.sensory_details})</em>` : 'None'}</p>
               <p><strong>Relationship Dynamic:</strong> ${item.relationship_dynamic ? `<strong>${item.relationship_dynamic.name}</strong> — ${item.relationship_dynamic.history_description} <em>(Power: ${item.relationship_dynamic.power_dynamic} | Tension: ${item.relationship_dynamic.current_tension})</em>` : 'None'}</p>
               <p><strong>Style Preset:</strong> ${item.style ? `<strong>${item.style.name}</strong> — <em>Pacing: ${item.style.pacing} | Sensory Focus: ${item.style.sensory_focus}</em>` : 'None'}</p>
+              
+              <div id="opening-result-${item.id}" style="display:none; margin-top:1rem; padding:1rem; background:rgba(15,23,42,0.9); border:1px solid rgba(236,72,153,0.4); border-radius:0.5rem; font-size:0.9rem; line-height:1.6; color:#f8fafc;">
+              </div>
+
               <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.5rem;">Created: ${new Date(item.created_at).toLocaleString()}</p>
             </div>
           `;
         }
+
 
 
       }).join('');
@@ -485,8 +493,37 @@
       loadData();
     }
 
+    async function generateInitialScene(sceneId, btnEl) {
+      const resultDiv = document.getElementById(`opening-result-${sceneId}`);
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<p style="color: #ec4899; font-weight:500;">⏳ Invoking LLM to generate initial scene setting...</p>';
+      btnEl.disabled = true;
+
+      try {
+        const res = await fetch(`/api/scenes/${sceneId}/generate-opening`, {
+          method: 'POST'
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Generation failed');
+
+        resultDiv.innerHTML = `
+          <h4 style="color:#ec4899; margin-bottom:0.5rem;">✨ LLM Generated Opening Scene Setting</h4>
+          <p style="white-space: pre-wrap; color:#f8fafc;">${data.generated_opening_beat}</p>
+          <details style="margin-top:0.75rem; font-size:0.75rem; color:#94a3b8;">
+            <summary style="cursor:pointer; color:#818cf8;">View Compiled Opening System Prompt</summary>
+            <pre style="white-space: pre-wrap; background:rgba(0,0,0,0.5); padding:0.5rem; margin-top:0.4rem; border-radius:0.25rem;">${data.system_prompt_compiled}</pre>
+          </details>
+        `;
+      } catch (err) {
+        resultDiv.innerHTML = `<p style="color: #ef4444;">Error generating scene setting: ${err.message}</p>`;
+      } finally {
+        btnEl.disabled = false;
+      }
+    }
+
     // Load initial tab data
     loadData();
   </script>
 </body>
 </html>
+

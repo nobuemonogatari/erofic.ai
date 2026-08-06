@@ -436,6 +436,37 @@ async def delete_scene_endpoint(
         raise HTTPException(status_code=404, detail="Scene configuration not found")
 
 
+from app.api.schemas import OpeningScenePreviewResponse
+from app.engine.llm import LLMClient, SYSTEM_JSON_INSTRUCTION
+
+@router.post("/api/scenes/{scene_id}/generate-opening", response_model=OpeningScenePreviewResponse)
+async def generate_opening_scene_endpoint(
+    scene_id: str,
+    db: AsyncSession = Depends(get_async_session),
+):
+    scene = await crud.get_scene_config(db, scene_id)
+    if not scene:
+        raise HTTPException(status_code=404, detail="Scene configuration not found")
+
+    compiled_prompt = build_opening_scene_system_prompt(scene)
+    llm_payload = [
+        {"role": "system", "content": SYSTEM_JSON_INSTRUCTION.format(persona_guidelines=f"3. {compiled_prompt}")}
+    ]
+
+    client = LLMClient()
+    try:
+        opening_beat = await client.generate_actions(llm_payload)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"LLM generation failed: {e}")
+
+    return OpeningScenePreviewResponse(
+        scene_config_id=scene_id,
+        system_prompt_compiled=compiled_prompt,
+        generated_opening_beat=opening_beat,
+    )
+
+
+
 async def trigger_re_ping(session_id: str):
     async with async_session_factory() as db:
         try:

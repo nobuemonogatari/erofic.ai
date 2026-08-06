@@ -311,8 +311,8 @@
       }
 
       grid.innerHTML = data.map(item => {
-      grid.innerHTML = data.map(item => {
         if (activeTab === 'characters') {
+
           return `
             <div class="item-card" style="grid-column: span 2;">
               <h3>${item.name} <span class="tag">${item.is_custom ? 'Custom' : 'Preset'}</span></h3>

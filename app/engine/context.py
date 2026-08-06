@@ -22,12 +22,13 @@ def build_llm_messages(
     system_prompt: str,
     system_instruction: str,
     messages: Sequence[MessageModel],
-    max_history: int = 20,
+    max_history: int = 10,
     current_time: datetime | None = None,
     trigger_type: str = "user_input",
     user_pov_name: str | None = None,
     npc_name: str | None = None,
 ) -> list[dict[str, str]]:
+
     now = current_time or datetime.now(timezone.utc)
     llm_payload: list[dict[str, str]] = []
 

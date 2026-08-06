@@ -578,21 +578,12 @@
     }
 
     // Initial load
-    async function initPage() {
-      await fetchSessions();
-      const urlParams = new URLSearchParams(window.location.search);
-      const sessionParam = urlParams.get('session_id');
-      if (sessionParam) {
-        selectSession(sessionParam);
-      }
-    }
-    initPage();
+    fetchSessions();
 
     // Auto-poll messages and system task events every 2 seconds
     setInterval(() => {
       fetchStream();
     }, 2000);
   </script>
-
 </body>
 </html>

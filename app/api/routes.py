@@ -102,22 +102,47 @@ async def send_message_endpoint(
             status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
         )
 
-    content = req.content.strip()
+    raw_content = req.content.strip()
 
     # Multi-command parser for /phase <N>
-    if "/phase" in content.lower() and session_obj.scene_config_id:
+    if "/phase" in raw_content.lower() and session_obj.scene_config_id:
         import re
-        phase_match = re.search(r"/phase\s+([1-3])", content, re.IGNORECASE)
+        phase_match = re.search(r"/phase\s+([1-3])", raw_content, re.IGNORECASE)
         if phase_match:
             new_phase = int(phase_match.group(1))
             await crud.update_scene_config(db, session_obj.scene_config_id, current_phase=new_phase)
             logger.info(f"[API] Updated active phase to Phase {new_phase} for scene {session_obj.scene_config_id}")
 
-    # Default to /speak if no slash command prefix is provided
-    if session_obj.scene_config_id and not content.startswith("/"):
-        content = f"/speak {content}"
+    # Parse slash commands into clean novel prose
+    content = raw_content
+    if session_obj.scene_config_id:
+        import re
+        parts = []
+
+        # Find all /cmd blocks or un-prefixed text
+        cmd_pattern = re.compile(r"/(action|speak|thought|phase)\s+([^/]+)", re.IGNORECASE)
+        matches = list(cmd_pattern.finditer(raw_content))
+
+        if matches:
+            for m in matches:
+                cmd = m.group(1).lower()
+                val = m.group(2).strip()
+                if cmd == "action":
+                    parts.append(f"*{val}*")
+                elif cmd == "speak":
+                    val_clean = val.strip('"')
+                    parts.append(f'"{val_clean}"')
+                elif cmd == "thought":
+                    parts.append(f"[Thought: {val}]")
+            if parts:
+                content = "\n\n".join(parts)
+        elif not raw_content.startswith("/"):
+            # Plain un-prefixed text -> format directly as dialogue
+            val_clean = raw_content.strip('"')
+            content = f'"{val_clean}"'
 
     logger.info(f"[API] Received message for session {session_id}: '{content[:60]}...'")
+
 
 
     user_msg = await crud.create_message(

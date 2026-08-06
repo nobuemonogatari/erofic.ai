@@ -46,14 +46,24 @@ async def process_event(
 
         # 3. Build context payload with system time awareness
         now = datetime.now(timezone.utc)
+
+        # Dynamic System Prompt Selection:
+        # - Opening beat (scene_init): uses opening narrator prompt
+        # - Ongoing turns (user_input / scheduled_action): uses in-character roleplay prompt if bound to scenario
+        active_system_prompt = session_obj.system_prompt
+        if session_obj.scene_config and trigger_type != "scene_init":
+            from app.engine.prompts import build_character_turn_system_prompt
+            active_system_prompt = build_character_turn_system_prompt(session_obj.scene_config)
+
         llm_payload = build_llm_messages(
-            system_prompt=session_obj.system_prompt,
+            system_prompt=active_system_prompt,
             system_instruction=SYSTEM_JSON_INSTRUCTION,
             messages=messages,
             current_time=now,
             trigger_type=trigger_type,
         )
         logger.debug(f"[ENGINE] Prepared LLM payload with {len(llm_payload)} items (trigger: {trigger_type})")
+
 
 
         # 4. Call LLM Client

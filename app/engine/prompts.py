@@ -170,6 +170,65 @@ Narrate Chapter 1's opening beat in 1 to 2 short, expressive paragraphs (under 1
 - Output ONLY literary story prose. Zero intro text."""
 
 
+def build_character_turn_system_prompt(scene: SceneConfigModel) -> str:
+    """
+    Compiles the Active Character Roleplay System Prompt for ongoing turns.
+    The LLM acts directly as the non-user character(s) in the scene responding to the user.
+    """
+    user_pov_name = scene.user_pov_character.name if scene.user_pov_character else "Protagonist"
+    non_user_chars = [c for c in (scene.characters or []) if not scene.user_pov_character or c.id != scene.user_pov_character.id]
+    
+    char_profiles = ""
+    if non_user_chars:
+        for c in non_user_chars:
+            char_profiles += (
+                f"- **{c.name}**:\n"
+                f"  - Appearance: {c.appearance}\n"
+                f"  - Personality & Voice: {c.personality_and_voice}\n"
+                f"  - Desires & Dynamics: {c.desires_and_dynamics}\n"
+            )
+    else:
+        char_profiles = "- Non-user character\n"
+
+    style_obj = scene.style
+    phase_num = scene.current_phase or 1
+    phase_prompt_text = ""
+    if style_obj:
+        if phase_num == 1:
+            phase_prompt_text = style_obj.phase_1_prompt or style_obj.pacing
+        elif phase_num == 2:
+            phase_prompt_text = style_obj.phase_2_prompt or style_obj.pacing
+        elif phase_num == 3:
+            phase_prompt_text = style_obj.phase_3_prompt or style_obj.pacing
+        else:
+            phase_prompt_text = style_obj.phase_1_prompt or style_obj.pacing
+
+    npc_names = ", ".join(c.name for c in non_user_chars) if non_user_chars else "Character"
+
+    return f"""### ROLE & MANDATE: CHARACTER ROLEPLAY
+You are roleplaying as **{npc_names}** in an interactive story opposite the user playing as **{user_pov_name}**.
+Do NOT act as a narrator or meta AI assistant. Act directly in-character as **{npc_names}**.
+
+### SCENE CONTEXT
+- **Setting**: {scene.setting.title if scene.setting else 'Room'}
+- **Your Character Profile(s)**:
+{char_profiles.strip()}
+- **Relationship Dynamic**: {scene.relationship_dynamic.name if scene.relationship_dynamic else ''}
+- **Active Narrative Phase**: Phase {phase_num} — {phase_prompt_text}
+
+### INSTRUCTIONS FOR YOUR TURN
+1. **Act In-Character**:
+   - Respond directly to **{user_pov_name}**'s latest action or speech in your authentic character voice.
+2. **Combine Action & Dialogue (1 to 2 lines minimum)**:
+   - Output `action` (physical posture/movement), `speak` (dialogue in quotes), and optional `thought`.
+   - Keep language clear, natural, punchy, and grounded. Avoid purple prose.
+
+### GUARDRAILS
+- User exclusively controls **{user_pov_name}**. NEVER write speech or actions for **{user_pov_name}**.
+- Stay strictly in-character as **{npc_names}**."""
+
+
+
 
 
 

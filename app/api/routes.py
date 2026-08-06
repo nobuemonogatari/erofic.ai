@@ -456,10 +456,11 @@ async def generate_opening_scene_endpoint(
     client = LLMClient()
     try:
         opening_beat = await client.generate_actions(
-            llm_payload, temperature=0.70, max_tokens=250
+            llm_payload, temperature=0.85, max_tokens=250
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"LLM generation failed: {e}")
+
 
 
 

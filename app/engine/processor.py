@@ -58,9 +58,10 @@ async def process_event(
 
         # 4. Call LLM Client
         client = llm_client or LLMClient()
-        temp = 0.70 if trigger_type == "scene_init" else 0.7
+        temp = 0.85 if trigger_type == "scene_init" else 0.7
         max_toks = 250 if trigger_type == "scene_init" else None
         logger.info(f"[ENGINE] Invoking LLM (model: {client.model}, temp={temp}, max_tokens={max_toks})...")
+
         try:
             llm_response = await client.generate_actions(
                 llm_payload, temperature=temp, max_tokens=max_toks

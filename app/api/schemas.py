@@ -1,6 +1,9 @@
+from typing import Any
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+import json
 from app.models import MessageRole
+
 
 
 # Existing Session & Message Schemas
@@ -189,6 +192,10 @@ class SceneConfigUpdateRequest(BaseModel):
     is_custom: bool | None = None
 
 
+from pydantic import BaseModel, ConfigDict, field_validator
+import json
+
+
 class SceneConfigResponse(BaseModel):
     id: str
     session_id: str | None
@@ -211,6 +218,18 @@ class SceneConfigResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+    @field_validator("role_assignments", mode="before")
+    @classmethod
+    def parse_role_assignments(cls, v: Any) -> dict[str, str]:
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return {}
+        if isinstance(v, dict):
+            return v
+        return {}
+
 
 class PrePackagedScenarioResponse(BaseModel):
     id: str
@@ -223,10 +242,26 @@ class PrePackagedScenarioResponse(BaseModel):
     user_pov_character: CharacterResponse | None = None
     characters: list[CharacterResponse] = []
 
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("role_assignments", mode="before")
+    @classmethod
+    def parse_role_assignments(cls, v: Any) -> dict[str, str]:
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return {}
+        if isinstance(v, dict):
+            return v
+        return {}
+
+
 class OpeningScenePreviewResponse(BaseModel):
     scene_config_id: str
     system_prompt_compiled: str
     generated_opening_beat: str
+
 
 
 

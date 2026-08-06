@@ -336,6 +336,7 @@
   <div class="container">
     <!-- Sidebar -->
     <div class="sidebar">
+      <div>
         <div class="section-title">New Session</div>
         <div class="create-session-card">
           <label style="font-size:0.75rem; color:var(--text-muted); font-weight:500;">Select Scenario:</label>
@@ -346,12 +347,12 @@
         </div>
       </div>
 
-
-      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-        <div class="section-title">Sessions (<span id="sessionCount">0</span>)</div>
+      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; margin-top:0.5rem;">
+        <div class="section-title">Active Sessions (<span id="sessionCount">0</span>)</div>
         <div id="sessionList" class="session-list"></div>
       </div>
     </div>
+
 
     <!-- Main Chat Area -->
     <div class="chat-area">

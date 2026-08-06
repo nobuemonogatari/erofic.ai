@@ -244,6 +244,12 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.2); opacity: 1; }
+    }
+
+
     .message-bubble.user {
       align-self: flex-end;
       background: var(--user-msg-bg);
@@ -485,12 +491,15 @@
           if (!container.querySelector('.empty-state')) {
             container.innerHTML = `
               <div class="empty-state">
-                <p>No messages yet. Send a message to trigger the engine.</p>
+                <div style="font-size:1.5rem; animation: pulse 1.5s infinite;">✨</div>
+                <p style="color:#ec4899; font-weight:600;">Generating opening scene beat...</p>
+                <p style="font-size:0.75rem; color:var(--text-muted);">The AI is establishing the atmosphere and initial confrontation.</p>
               </div>
             `;
           }
           return;
         }
+
 
         // Remove empty state if present
         const emptyState = container.querySelector('.empty-state');

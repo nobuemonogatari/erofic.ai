@@ -92,49 +92,54 @@ class LLMClient:
         self.client = AsyncOpenAI(**kwargs)
 
     async def generate_actions(
-        self, messages: list[dict[str, str]], temperature: float = 0.7
+        self,
+        messages: list[dict[str, str]],
+        temperature: float = 0.7,
+        max_tokens: int | None = None,
     ) -> str:
         payload_messages = messages
 
         endpoint_info = f"base_url={self.base_url}" if self.base_url else "default OpenAI endpoint"
-        logger.info(f"[LLM] Requesting completion from model '{self.model}' ({endpoint_info}) with {len(payload_messages)} messages (temp={temperature}, timeout={self.timeout}s)")
+        logger.info(f"[LLM] Requesting completion from model '{self.model}' ({endpoint_info}) with {len(payload_messages)} messages (temp={temperature}, max_tokens={max_tokens}, timeout={self.timeout}s)")
+
+        kwargs: dict[str, Any] = {
+            "model": self.model,
+            "messages": payload_messages,
+            "temperature": temperature,
+            "timeout": self.timeout,
+        }
+        if max_tokens is not None:
+            kwargs["max_tokens"] = max_tokens
 
         try:
             # First try with Strict JSON Schema mode
             try:
-                response = await self.client.chat.completions.create(
-                    model=self.model,
-                    messages=payload_messages,  # type: ignore
-                    response_format={
-                        "type": "json_schema",
-                        "json_schema": {
-                            "name": "llm_response",
-                            "strict": True,
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "message": {
-                                        "type": "string",
-                                        "description": "The conversational message response."
-                                    }
-                                },
-                                "required": ["message"],
-                                "additionalProperties": False
-                            }
+                schema_kwargs = dict(kwargs)
+                schema_kwargs["response_format"] = {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "llm_response",
+                        "strict": True,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "The conversational message response."
+                                }
+                            },
+                            "required": ["message"],
+                            "additionalProperties": False
                         }
-                    },
-                    temperature=temperature,
-                    timeout=self.timeout,
-                )
+                    }
+                }
+                response = await self.client.chat.completions.create(**schema_kwargs)
             except Exception as schema_err:
                 logger.warning(f"[LLM] json_schema mode not supported by endpoint ({schema_err}). Falling back to json_object mode.")
-                response = await self.client.chat.completions.create(
-                    model=self.model,
-                    messages=payload_messages,  # type: ignore
-                    response_format={"type": "json_object"},
-                    temperature=temperature,
-                    timeout=self.timeout,
-                )
+                obj_kwargs = dict(kwargs)
+                obj_kwargs["response_format"] = {"type": "json_object"}
+                response = await self.client.chat.completions.create(**obj_kwargs)
+
 
             raw_content = response.choices[0].message.content or "{}"
             logger.debug(f"[LLM:RESPONSE] === RECEIVED FROM LLM ===\n{raw_content}\n===========================")

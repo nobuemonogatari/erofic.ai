@@ -92,16 +92,18 @@ async def process_event(
             timestamp=now,
         )
 
-        # 6. Always schedule default in-memory wake-up / re-ping timer (30s)
-        timer_manager.schedule_re_ping(session_id, delay=DEFAULT_WAKEUP_TIMER_SECONDS)
-        logger.info(f"[DEFAULT_TIMER] Scheduled default {DEFAULT_WAKEUP_TIMER_SECONDS}s re-ping in-memory timer for session {session_id}")
+        # 6. Re-ping timer disabled for now
+        # timer_manager.schedule_re_ping(session_id, delay=DEFAULT_WAKEUP_TIMER_SECONDS)
+        # logger.info(f"[DEFAULT_TIMER] Scheduled default {DEFAULT_WAKEUP_TIMER_SECONDS}s re-ping in-memory timer for session {session_id}")
 
-        logger.info(f"[ENGINE] Completed event cycle for session {session_id}: spoken=1, timers_set=1")
+        logger.info(f"[ENGINE] Completed event cycle for session {session_id}: spoken=1, timers_set=0")
+
 
         return {
             "status": "success",
             "spoken": 1,
-            "timers_set": 1,
+            "timers_set": 0,
         }
+
 
 

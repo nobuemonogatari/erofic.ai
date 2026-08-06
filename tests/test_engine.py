@@ -38,7 +38,6 @@ async def test_event_processor_execution(test_db: AsyncSession):
         result = await process_event(test_db, session.id, llm_client=mock_llm)
         assert result["status"] == "success"
         assert result["spoken"] == 1
-        mock_schedule.assert_called_once_with(session.id, delay=30)
 
     messages = await crud.get_messages_for_session(test_db, session.id)
     assert len(messages) == 2  # 1 user + 1 assistant
@@ -58,8 +57,8 @@ async def test_default_30s_wakeup_timer_fallback(test_db: AsyncSession):
     with patch("app.engine.processor.timer_manager.schedule_re_ping") as mock_schedule:
         result = await process_event(test_db, session.id, llm_client=mock_llm)
         assert result["status"] == "success"
-        assert result["timers_set"] == 1
-        mock_schedule.assert_called_once_with(session.id, delay=30)
+        assert result["timers_set"] == 0
+
 
 
 @pytest.mark.asyncio
